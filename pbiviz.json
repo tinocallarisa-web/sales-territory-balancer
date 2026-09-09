@@ -1,0 +1,26 @@
+{
+  "$schema": "https://raw.githubusercontent.com/microsoft/powerbi-visuals-tools/master/schemas/pbiviz.json",
+  "visual": {
+    "name": "clusterWeighted",
+    "displayName": "Cluster Weighted",
+    "guid": "clusterWeighted7852F42A6D8A494CB286C44ACCF04FBB",
+    "visualClassName": "Visual",
+    "version": "1.0.0.0",
+    "description": "Geographic weighted clustering for salesforce territory design. Groups points of sale into balanced clusters based on proximity and workload (value).",
+    "supportUrl": "https://tcviz.com/cluster-weighted/support",
+    "gitHubUrl": "",
+    "privacyTermsLink": "https://tcviz.com/cluster-weighted/privacy"
+  },
+  "apiVersion": "5.11.0",
+  "author": {
+    "name": "TCViz",
+    "email": "support@tcviz.com"
+  },
+  "assets": {
+    "icon": "assets/icon.png"
+  },
+  "externalJS": [],
+  "style": "style/visual.less",
+  "capabilities": "capabilities.json",
+  "stringResources": []
+}

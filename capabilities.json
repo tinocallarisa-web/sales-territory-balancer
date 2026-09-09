@@ -1,0 +1,86 @@
+{
+    "dataRoles": [
+        {
+            "displayName": "Customer ID",
+            "name": "customer_id",
+            "kind": "GroupingOrMeasure",
+            "description": "Unique identifier for each point of sale"
+        },
+        {
+            "displayName": "Latitude",
+            "name": "latitude",
+            "kind": "Measure",
+            "description": "Geographic latitude of the point of sale"
+        },
+        {
+            "displayName": "Longitude",
+            "name": "longitude",
+            "kind": "Measure",
+            "description": "Geographic longitude of the point of sale"
+        },
+        {
+            "displayName": "Value (hours)",
+            "name": "value",
+            "kind": "Measure",
+            "description": "Workload in hours assigned to this point of sale"
+        }
+    ],
+    "dataViewMappings": [
+        {
+            "table": {
+                "rows": {
+                    "select": [
+                        { "for": { "in": "customer_id" } },
+                        { "for": { "in": "latitude" } },
+                        { "for": { "in": "longitude" } },
+                        { "for": { "in": "value" } }
+                    ],
+                    "dataReductionAlgorithm": {
+                        "top": { "count": 30000 }
+                    }
+                }
+            }
+        }
+    ],
+    "objects": {
+        "clusterSettings": {
+            "displayName": "Cluster Settings",
+            "properties": {
+                "numClusters": {
+                    "displayName": "Number of Clusters",
+                    "description": "Number of territory clusters (salespeople)",
+                    "type": { "numeric": true }
+                },
+                "targetSize": {
+                    "displayName": "Target Size (hours)",
+                    "description": "Target workload per cluster in hours",
+                    "type": { "numeric": true }
+                },
+                "maxVariation": {
+                    "displayName": "Max Variation %",
+                    "description": "Maximum allowed deviation from target size (minimum 10% is always enforced)",
+                    "type": { "numeric": true }
+                }
+            }
+        },
+        "mapSettings": {
+            "displayName": "Map Settings",
+            "properties": {
+                "showAttribution": {
+                    "displayName": "Show Map Attribution",
+                    "type": { "bool": true }
+                },
+                "markerSize": {
+                    "displayName": "Marker Size",
+                    "type": { "numeric": true }
+                }
+            }
+        }
+    },
+    "supportsHighlight": true,
+    "supportsSynchronizingFilterState": true,
+    "supportsLandingPage": true,
+    "supportsKeyboardFocus": true,
+    "supportsMultiVisualSelection": true,
+    "privileges": []
+}
