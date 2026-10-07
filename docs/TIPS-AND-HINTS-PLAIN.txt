@@ -1,0 +1,109 @@
+SALES TERRITORY BALANCER — TIPS & HINTS
+Version 1.0.0.0 · TCViz
+Video walkthrough: https://www.youtube.com/watch?v=BOZbV4abueg
+
+Paste-ready for Power BI text boxes. No markdown tables, so formatting survives copy and paste.
+
+═══════════════════════════════════════════════════════════════
+
+WHAT IT IS — AND WHAT IT IS NOT
+
+  A territory design and sales force sizing tool: how many salespeople
+  each area needs, and one territory per salesperson.
+  It does NOT plan routes, sequence visits or read a road network.
+  Distances are straight lines times a road factor you set; travel
+  time is a planning estimate.
+
+═══════════════════════════════════════════════════════════════
+
+GETTING STARTED
+
+  1 .... Drop the visual on the canvas
+  2 .... Customer ID, Latitude, Longitude — one row per point of sale
+  3 .... Visits per month and Minutes per visit — the workload
+  4 .... Type a number in AREAS in the bar, or (Pro) bind your Area field
+  5 .... Set HOURS / SALESPERSON / MONTH — each badge shows the salespeople needed
+
+═══════════════════════════════════════════════════════════════
+
+FIELD WELLS
+
+  Customer ID ......... Any identifier — one row per point of sale
+  Latitude, Longitude . Decimal degrees — required
+  Visits per month .... 0.5 means every two months
+  Minutes per visit ... Time on site per visit
+  Postal code ......... Optional — territories made of whole postal codes
+  Speed (km/h) ........ Travel speed around this point            (PRO)
+  Area ................ Your commercial areas                      (PRO)
+  Tooltips ............ Extra values on hover
+
+═══════════════════════════════════════════════════════════════
+
+THE CONTROL BAR  (works in reading view)
+
+  Hours / salesperson . 140 — size of a territory, a hard cap
+  km/h ................ 45 — average travel speed
+  Road × .............. 1.3 — road distance over straight line
+  Areas ............... 0 — automatic areas; 0 = nothing computed
+  Export CSV .......... Client, area, territory, hours            (PRO)
+  Export map PDF ...... The map as you see it, one page           (PRO)
+
+═══════════════════════════════════════════════════════════════
+
+FORMAT PANE
+
+  TERRITORIES
+    Working days / month ... 20 — hours ÷ this = one working day
+    Outlier distance (km) .. 0 = off — far-off clients left out, drawn hollow
+
+  AREA BADGES
+    Show · Shape (circle or rectangle) · Font · Size · Colours · Border
+
+  MAP SETTINGS
+    Marker size
+
+═══════════════════════════════════════════════════════════════
+
+FREE AND PRO
+
+  FREE — sizing, automatic areas along land borders, islands apart,
+         territories with a hard cap on hours, whole postal codes,
+         territories on focus, filters, bookmarks, tooltips, high contrast
+  PRO  — your own Area field · Speed per point · Export CSV · Export map PDF
+
+  Without a licence, Area and Speed work in edit mode under a
+  "Pro preview" watermark.
+
+═══════════════════════════════════════════════════════════════
+
+TIPS
+
+  ✓ Set the road factor for your country: about 1.2 United States,
+    1.3 India, 1.5 Mexico, 1.6 Spain
+  ✓ Check units first: minutes per visit, monthly hours
+  ✓ 6.4 salespeople is the answer — rounding is your decision
+  ✓ Areas follow geography, not hours; hours are balanced inside each area
+  ✓ Assign by postal code? Bind Postal code: one code, one salesperson
+  ✓ Click an area to see its territories and their hours, and to filter
+    the rest of the page
+  ✓ Try "what if 120 h" in reading view: same data, same result
+
+═══════════════════════════════════════════════════════════════
+
+TROUBLESHOOTING
+
+  Nothing happens ............ Type a number in Areas or bind Area
+  One single point ........... Bind Customer ID
+  Client in the "wrong" area . Check its Area value in your data
+  Postal code ignored ........ The column is not geographic
+  "30,000 so far" ............ Power BI sends rows in blocks; it waits
+  Export not allowed ......... Admin: "Allow downloads from custom visuals"
+  Computes again on return ... Data or parameters changed, result older
+                               than 29 days, not signed in, or local
+                               storage switched off
+
+═══════════════════════════════════════════════════════════════
+
+Documentation: https://tinocallarisa-web.github.io/sales-territory-balancer/support.html
+Methodology:   https://tinocallarisa-web.github.io/sales-territory-balancer/methodology.html
+Support:       support@tcviz.com

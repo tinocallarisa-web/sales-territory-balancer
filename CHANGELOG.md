@@ -26,7 +26,7 @@ First release.
 - **Parameters in a bar inside the visual.** Hours per salesperson, km/h, road factor and number of areas, editable in reading view; saved with the report only in edit mode.
 - **Speed per point (Pro).** Travel speed around each client — city centre, outskirts, countryside — instead of one figure for a whole country.
 - **Exports (Pro).** CSV of the assignment (customer, area, territory, monthly hours, postal code) and a one-page PDF of the map, through Power BI's own download dialog.
-- **Reading the result.** Area badges (circle or rectangle) and a legend with salespeople needed per area and in total; tooltip with visit and travel time and the client's territory; focusing an area filters other visuals (by Area column, postal codes or rows); bookmarks; points and badges scale with zoom.
+- **Reading the result.** Area badges (circle or rectangle) and a legend with salespeople needed per area and in total; tooltip with visit and travel time and the client's territory; focusing an area draws its territories, each with its outline and its hours, and filters other visuals (by Area column, postal codes or rows); bookmarks; points and badges scale with zoom.
 - **Built for Power BI.** No network requests and no basemap tiles; modern format pane; English and Spanish; high contrast; context menu; Power BI tooltips and report tooltip pages; all rows loaded in blocks of 30,000; deterministic results.
 
 How every number is computed — formulas, constants, assumptions, limitations, validation and
