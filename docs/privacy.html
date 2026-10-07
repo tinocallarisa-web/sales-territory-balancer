@@ -64,10 +64,11 @@ the rest of your dataset, your Power BI workspace, your account or your device.<
 <div class="note">
   <strong>The visual makes no network requests whatsoever.</strong> There are no <code>fetch</code> or
   <code>XMLHttpRequest</code> calls, no external scripts, no fonts loaded from a CDN, no analytics,
-  no telemetry, no error reporting and no advertising. The only privilege it declares in
-  <code>capabilities.json</code> is <code>ExportContent</code>, which lets it hand a file to Power BI's own
-  download dialog (§4). It declares no web-access privilege, so Power BI itself blocks any outbound
-  connection at the platform level. The map outlines (Natural Earth) are packaged inside the visual.
+  no telemetry, no error reporting and no advertising. It declares two privileges in
+  <code>capabilities.json</code>, both local: <code>ExportContent</code>, which lets it hand a file to Power
+  BI's own download dialog (§4), and <code>LocalStorage</code>, which lets it keep its last result in your
+  browser (§3). It declares no web-access privilege, so Power BI itself blocks any outbound connection at
+  the platform level. The map outlines (Natural Earth) are packaged inside the visual.
 </div>
 <p>This is also why the map has <strong>no street background</strong>. A background map would mean
 fetching tiles from a third-party server, and every tile request would tell that server which area
@@ -83,9 +84,22 @@ the report opens with the settings its author chose. In <em>reading view</em> no
 a reader can change the values to explore, and the report is not modified.</p>
 <p>These are numbers you typed, never data values. They travel nowhere else.</p>
 
+<h3>The last result, in your browser</h3>
+<p>Power BI discards a visual when you leave its report page and creates it again when you come back.
+So that the territories do not have to be computed again, the visual keeps its last result in your
+browser through Power BI's own local storage API (<code>IVisualLocalStorageV2Service</code>). What it
+keeps is only <strong>the territory number of each client, by position</strong>, the hours per territory
+and area, the area names and the territories' centres, plus a fingerprint of the data and parameters so
+that it is used only when they match. It does <strong>not</strong> keep customer IDs, coordinates,
+visits or any other value from your data. It never leaves your machine, Power BI deletes it 29 days after
+it was last written, and it is available only when you are signed in. Your Power BI administrator
+controls it with the tenant setting <em>Allow access to the browser's local storage</em> (on by default);
+when it is off, the visual simply computes again.</p>
+
 <h3>What is not stored</h3>
 <ul>
-  <li>No cookies, <code>localStorage</code> or <code>sessionStorage</code></li>
+  <li>No cookies, and no direct use of <code>localStorage</code> or <code>sessionStorage</code>: the only
+  browser storage is the Power BI API described above</li>
   <li>No browser fingerprinting or device identifiers</li>
   <li>No copies of your data outside the current rendering pass</li>
   <li>No personal information of any kind</li>

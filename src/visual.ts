@@ -11,10 +11,11 @@ import ILocalizationManager = powerbi.extensibility.ILocalizationManager;
 
 import * as L from "leaflet";
 import { VisualSettings, IClusterSettings } from "./settings";
-import { AreaZoningResult, ClusterPoint, clusterByArea, clusterPoints, geographicAreas, markOutliers, ZoningResult } from "./clustering";
+import { AreaZoningResult, ClusterPoint, cargasDesde, clusterByArea, clusterPoints, geographicAreas, markOutliers, ZoningResult } from "./clustering";
 import { OUTLINE_ADMIN1, OUTLINE_COUNTRIES } from "./outlines";
 import { buildAreas } from "./areas";
 import { regionsOfPoints } from "./regions";
+import { aplicar, capturar, diag, guardar, huella, Instantanea, leer } from "./cache";
 import { BasicFilter } from "powerbi-models";
 import { FormattingSettingsService } from "powerbi-visuals-utils-formattingmodel";
 import { buildFormattingModel } from "./formatting";
@@ -229,6 +230,10 @@ function injectLeafletCSS(): void {
 }
 
 // ─── Visual ────────────────────────────────────────────────────────────────────
+/** Ultimos resultados en memoria (sirve al volver a valores anteriores en la misma pagina; al
+ *  cambiar de pagina Power BI descarta el modulo y manda la cache del navegador, cache.ts). */
+const RECIENTES: Instantanea[] = [];
+
 export class Visual implements IVisual {
 
     private static ensureLeafletCSS = injectLeafletCSS;
@@ -307,6 +312,12 @@ export class Visual implements IVisual {
     private emitEvents = true;
     /** Tamano del visual en el ultimo update (para no reencuadrar si no cambia). */
     private lastViewport = "";
+    /** Filas que habia al pedir el ultimo bloque (fetchMoreData); 0 = sin peticion en curso. */
+    private filasPedidas = 0;
+    /** Marca de las builds de test; muestra tambien el estado de la cache del navegador. */
+    private stampEl: HTMLElement | null = null;
+    private stampBase = "";
+    private pintarDiag(): void { if (this.stampEl) this.stampEl.textContent = `${this.stampBase} · guardar: ${diag.guardar} · leer: ${diag.leer}`; }
     /** Firma de los datos del ultimo calculo, para no recalcular en un simple resize. */
     private dataKey = "";
     private computeGen = 0;
@@ -396,8 +407,9 @@ export class Visual implements IVisual {
         const TEST_STAMP = ""; // TEST_STAMP_MARKER
         if (TEST_STAMP) {
             const st = document.createElement("div");
+            this.stampEl = st;
             st.style.cssText = "position:absolute;right:4px;bottom:2px;z-index:2000;font:10px 'Segoe UI',sans-serif;color:#8a8880;pointer-events:none;";
-            st.textContent = TEST_STAMP;
+            st.textContent = TEST_STAMP; this.stampBase = TEST_STAMP;
             this.container.appendChild(st);
         }
         options.element.appendChild(this.container);
@@ -542,11 +554,23 @@ export class Visual implements IVisual {
             // sobre las anteriores); se calcula cuando ya no quedan, o cuando Power BI dice
             // que no cabe mas en memoria. Con "top" no habia segmento y 40.000 puntos se
             // quedaban en 30.000 sin avisar.
-            if (dataView.metadata?.segment && this.host.fetchMoreData(true)) {
-                this.overlay.textContent = this.tf("UI_Loading", "Loading points… {0} so far", dataView.table.rows.length.toLocaleString());
-                this.overlay.style.display = "flex";
-                this.finished(options);
-                return;
+            // Mientras el bloque pedido no llega, cualquier otro update (un resize, los valores de la
+            // barra guardados en el informe) vuelve a pasar por aqui, y fetchMoreData devuelve false
+            // porque ya hay una peticion en curso: antes eso se tomaba como "no hay mas" y se repartia
+            // con 30.000 de 41.260 clientes (07-10-2026). Se espera mientras no llegue un bloque
+            // nuevo; solo se calcula con datos incompletos si llega uno y Power BI no da mas (memoria).
+            if (dataView.metadata?.segment) {
+                const filas = dataView.table.rows.length;
+                const pedir = this.host.fetchMoreData(true);
+                if (pedir || filas <= this.filasPedidas) {
+                    if (pedir) this.filasPedidas = filas;
+                    this.overlay.textContent = this.tf("UI_Loading", "Loading points… {0} so far", filas.toLocaleString());
+                    this.overlay.style.display = "flex";
+                    this.finished(options);
+                    return;
+                }
+            } else {
+                this.filasPedidas = 0;
             }
 
             const settings = VisualSettings.parse(dataView);
@@ -651,8 +675,6 @@ export class Visual implements IVisual {
     private compute(points: ClusterPoint[]): void {
         if (!this.live) return;
         const live = this.live;
-        this.overlay.textContent = this.tf("UI_Balancing", "Balancing {0} points…", points.length.toLocaleString());
-        this.overlay.style.display = "flex";
         const gen = ++this.computeGen;
         this.focus = null;
         this.focusViaFilter = false;
@@ -664,6 +686,41 @@ export class Visual implements IVisual {
             this.clearSelection();
             this.clearFilter();
         }
+        // mismo dato y mismos parametros: resultado guardado, sin recalcular. Primero en memoria
+        // (misma pagina); si no, en el navegador (al volver de otra pagina, cache.ts)
+        const h = huella(this.dataKey + "|" + JSON.stringify(live));
+        const restaurar = (s: Instantanea): void => {
+            aplicar(s, points);
+            // cargas por cliente (tooltip, CSV): se recalculan con el mismo modelo, no se guardan
+            const work = points.filter(p => !p.outlier);
+            const aot = (s.lastResult as AreaZoningResult).areaOfTerritory ?? null;
+            cargasDesde(work, aot, regionsOfPoints(work).land, s.lastResult.centers,
+                { capacityHours: live.capacityHours, tolerance: 0, speedKmh: live.speedKmh, detour: live.detour, workDays: live.workDays,
+                  wholePostal: points.some(p => p.postal != null && p.postal !== "") && !s.postalIgnored });
+            for (const p of points) if (p.outlier) { const v = p.visits ?? 1; p.load = v * (p.minutes ?? (p.value * 60) / v); }
+            this.lastAreas = s.lastAreas; this.lastResult = s.lastResult; this.lastOutliers = s.lastOutliers;
+            this.postalIgnored = s.postalIgnored; this.postalFilterOk = s.postalFilterOk;
+            this.waitingAreas = false;
+            this.overlay.style.display = "none";
+            this.renderMap(points);
+            this.restoring = false;
+            this.restoreFocusFromFilters();
+        };
+        const enMemoria = RECIENTES.find(s => s.huella === h && s.cid.length === points.length);
+        if (enMemoria) { restaurar(enMemoria); return; }
+        const svc = this.host.storageV2Service;
+        void leer(svc, h, points.length).then(s => {
+            this.pintarDiag();
+            if (gen !== this.computeGen) return;            // llego otro cambio mientras tanto
+            if (s) { RECIENTES.unshift(s); if (RECIENTES.length > 3) RECIENTES.length = 3; restaurar(s); return; }
+            this.calcular(points, live, gen, h);
+        });
+    }
+
+    private calcular(points: ClusterPoint[], live: IClusterSettings, gen: number, h: string): void {
+        // el aviso solo cuando de verdad se reparte (antes salia un instante tambien al restaurar)
+        this.overlay.textContent = this.tf("UI_Balancing", "Balancing {0} points…", points.length.toLocaleString());
+        this.overlay.style.display = "flex";
         setTimeout(() => {
             if (gen !== this.computeGen) return;          // llego otro cambio mientras tanto
             try {
@@ -682,7 +739,9 @@ export class Visual implements IVisual {
                     // caben quedan como territorio parcial). Los apartados se marcan antes, solo
                     // si el usuario pone "Outlier km" (markOutliers).
                     outlierKm: 1e6,
-                    workDays: live.workDays
+                    workDays: live.workDays,
+                    // con codigo postal geografico, cada codigo entero en un territorio si cabe
+                    wholePostal: false
                 };
                 // OUTLIERS fuera antes de nada: clientes tan apartados que no son de ningun
                 // territorio (tercer vecino a mas de "Outlier km"). Se marcan y no entran.
@@ -718,6 +777,7 @@ export class Visual implements IVisual {
                     // codigo no geografico, o alguno partido por pueblos: el filtro por codigo dejaria de ser
                     // exacto (un codigo en dos areas), asi que el filtro de area pasa a filas
                     this.postalIgnored = !!built.postalIgnored;
+                    opt.wholePostal = hasPostal && !built.postalIgnored;
                     this.postalFilterOk = !built.postalIgnored && !built.postalSplit;
                     const areaOf = built.areaOf, names = hasField ? built.names : (() => { let k = 0; return built.names.map((_, j) => built.fixedNames?.[j] ?? this.tf("UI_AreaN", "Area {0}", ++k)); })();
                     void geographicAreas;
@@ -729,6 +789,9 @@ export class Visual implements IVisual {
                     res = clusterPoints(work, opt);
                 }
                 this.lastResult = res;
+                const instantanea = capturar(h, points, this.lastAreas, res, this.lastOutliers, this.postalIgnored, this.postalFilterOk);
+                RECIENTES.unshift(instantanea); if (RECIENTES.length > 3) RECIENTES.length = 3;
+                void guardar(this.host.storageV2Service, instantanea).then(() => this.pintarDiag());
                 this.renderMap(points);
                 this.restoring = false;
                 this.restoreFocusFromFilters();

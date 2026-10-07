@@ -54,6 +54,9 @@ export interface ClusterPoint {
     /** Marcado como outlier (demasiado lejos de cualquier otro cliente): fuera del reparto. */
     outlier?: boolean;
     clusterId: number; // -1 = sin asignar
+    /** Minutos por km de distancia a la base, por visita, YA calculados (unidades agregadas de
+     *  clusterByArea con wholePostal); con el, minutes ya incluye el salto. */
+    preTpk?: number;
 }
 
 export interface ZoningOptions {
@@ -97,6 +100,8 @@ export interface ZoningOptions {
     repairPasses?: number;
     /** true = quedarse con el reparto del crecimiento (del denso al disperso) sin reequilibrar. */
     growthOnly?: boolean;
+    /** true = cada codigo postal (ClusterPoint.postal) entero en un territorio, si cabe. */
+    wholePostal?: boolean;
     /** true = sin deteccion de pueblos (solo crecimiento desde los focos). */
     noTowns?: boolean;
     /** Como se parte un pueblo en comerciales: "power" (diagrama, por defecto) o "bisect". */
@@ -264,6 +269,54 @@ class CenterGrid {
 /**
  * El reparto. Escribe clusterId y load en cada punto y devuelve el resumen.
  */
+/**
+ * Modelo de desplazamiento por cliente (ver DESPLAZAMIENTO en clusterPoints): salto en minutos
+ * por visita (media a los 3 vecinos) y minutos por km de distancia a la base por visita (viaje
+ * diario repartido entre las visitas del dia). Misma proyeccion y mismas formulas que
+ * clusterPoints, que la usa.
+ */
+export function travelModel(points: ClusterPoint[], opt: ZoningOptions): { hop: Float64Array; tpk: Float64Array } {
+    const n = points.length;
+    const hopMin = new Float64Array(n), travelPerKm = new Float64Array(n);
+    if (n === 0) return { hop: hopMin, tpk: travelPerKm };
+    const capMin = opt.capacityHours * 60;
+    let latMean = 0; for (const p of points) latMean += p.lat; latMean /= n;
+    const kx = (Math.PI / 180) * R_TIERRA * Math.cos(latMean * Math.PI / 180), ky = (Math.PI / 180) * R_TIERRA;
+    const x = new Float64Array(n), y = new Float64Array(n), visits = new Float64Array(n), minutes = new Float64Array(n);
+    let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+    for (let i = 0; i < n; i++) {
+        const p = points[i]; x[i] = p.lon * kx; y[i] = p.lat * ky;
+        if (x[i] < minX) minX = x[i]; if (x[i] > maxX) maxX = x[i]; if (y[i] < minY) minY = y[i]; if (y[i] > maxY) maxY = y[i];
+        const v = p.visits != null && p.visits > 0 ? p.visits : 1;
+        visits[i] = v; minutes[i] = p.minutes != null && p.minutes > 0 ? p.minutes : (p.value * 60) / v;
+    }
+    const areaKm2 = Math.max(1, (maxX - minX) * (maxY - minY));
+    const minPerKm = new Float64Array(n);
+    for (let i = 0; i < n; i++) {
+        const s = points[i].speedKmh;
+        minPerKm[i] = (opt.detour / (s != null && s > 0 ? s : opt.speedKmh)) * 60;
+    }
+    const dayMin = capMin / (opt.workDays != null && opt.workDays > 0 ? opt.workDays : 20);
+    if (n > 1) {
+        const K3 = Math.min(3, n - 1), nb3 = exactKnn(x, y, n, K3, areaKm2);
+        for (let i = 0; i < n; i++) {
+            let s = 0, c = 0;
+            for (let q = 0; q < K3; q++) { const j = nb3[i * K3 + q]; if (j >= 0) { s += Math.hypot(x[i] - x[j], y[i] - y[j]); c++; } }
+            hopMin[i] = c ? (s / c) * minPerKm[i] : 0;
+        }
+        const KV = Math.min(30, n - 1), nbV = exactKnn(x, y, n, KV, areaKm2);
+        for (let i = 0; i < n; i++) {
+            let sv = visits[i], sc = visits[i] * (minutes[i] + hopMin[i]);
+            for (let q = 0; q < KV; q++) { const j = nbV[i * KV + q]; if (j >= 0) { sv += visits[j]; sc += visits[j] * (minutes[j] + hopMin[j]); } }
+            const perDay = Math.max(1, dayMin / Math.max(1e-6, sc / sv));
+            travelPerKm[i] = 2 * minPerKm[i] / perDay;
+        }
+    } else {
+        travelPerKm[0] = 2 * minPerKm[0];
+    }
+    return { hop: hopMin, tpk: travelPerKm };
+}
+
 export function clusterPoints(points: ClusterPoint[], opt: ZoningOptions): ZoningResult {
     const n = points.length;
     const empty: ZoningResult = { k: 0, centers: [], zoneHours: new Float64Array(0), withinTolerance: 0, travelShare: 0, outOfBand: 0, unresolved: 0, unassigned: 0 };
@@ -324,28 +377,12 @@ export function clusterPoints(points: ClusterPoint[], opt: ZoningOptions): Zonin
     //   - d: distancia al centro del territorio (la base), como siempre.
     // La velocidad es la del entorno del cliente si viene en el pozo Speed, si no la de la barra.
     const travelPerKm = new Float64Array(n), hopMin = new Float64Array(n);
-    const minPerKm = new Float64Array(n);
-    for (let i = 0; i < n; i++) {
-        const s = points[i].speedKmh;
-        minPerKm[i] = (opt.detour / (s != null && s > 0 ? s : opt.speedKmh)) * 60;
-    }
-    const dayMin = capMin / (opt.workDays != null && opt.workDays > 0 ? opt.workDays : 20);
-    if (n > 1) {
-        const K3 = Math.min(3, n - 1), nb3 = exactKnn(x, y, n, K3, areaKm2);
-        for (let i = 0; i < n; i++) {
-            let s = 0, c = 0;
-            for (let q = 0; q < K3; q++) { const j = nb3[i * K3 + q]; if (j >= 0) { s += Math.hypot(x[i] - x[j], y[i] - y[j]); c++; } }
-            hopMin[i] = c ? (s / c) * minPerKm[i] : 0;
-        }
-        const KV = Math.min(30, n - 1), nbV = exactKnn(x, y, n, KV, areaKm2);
-        for (let i = 0; i < n; i++) {
-            let sv = visits[i], sc = visits[i] * (minutes[i] + hopMin[i]);
-            for (let q = 0; q < KV; q++) { const j = nbV[i * KV + q]; if (j >= 0) { sv += visits[j]; sc += visits[j] * (minutes[j] + hopMin[j]); } }
-            const perDay = Math.max(1, dayMin / Math.max(1e-6, sc / sv));
-            travelPerKm[i] = 2 * minPerKm[i] / perDay;
-        }
+    if (points.every(p => p.preTpk != null)) {
+        // unidades agregadas (codigos postales enteros): salto ya incluido en minutes
+        for (let i = 0; i < n; i++) travelPerKm[i] = points[i].preTpk as number;
     } else {
-        travelPerKm[0] = 2 * minPerKm[0];
+        const tm = travelModel(points, opt);
+        hopMin.set(tm.hop); travelPerKm.set(tm.tpk);
     }
     // el salto entra en la carga como tiempo fijo de la visita: visits*(minutes + d*travelPerKm)
     // sigue siendo la carga en todo el algoritmo. visitLoad (arriba) ya se calculo SIN el salto,
@@ -1630,6 +1667,151 @@ export interface AreaZoningResult extends ZoningResult {
  * territorio consecutivos. Un territorio nunca cruza un area. Un area con menos carga que
  * una capacidad da un territorio corto, y se dice.
  */
+/**
+ * EL TOPE MANDA (07-10-2026). Con piezas enteras el encaje no siempre cabe: cinco o seis codigos
+ * de 25-40 h no se reparten sin pasarse, y salian territorios de 200 h. Un territorio por encima
+ * del tope se DIVIDE en dos por su eje principal, con las piezas enteras, hasta caber (la misma
+ * regla que los pueblos: un comercial con horas libres, nunca uno al 130%). Cada mitad tiene su
+ * base en su centro de carga. Una pieza sola nunca se pasa: con su base en ella no tiene viaje,
+ * y las piezas de mas de medio comercial ya van sueltas.
+ */
+function partirPasados(u: ClusterPoint[], r: ZoningResult, opt: ZoningOptions): void {
+    const capMin = opt.capacityHours * 60, n = u.length;
+    if (!n) return;
+    let latM = 0; for (const p of u) latM += p.lat; latM /= n;
+    const kx = (Math.PI / 180) * R_TIERRA * Math.cos(latM * Math.PI / 180), ky = (Math.PI / 180) * R_TIERRA;
+    const x = u.map(p => p.lon * kx), y = u.map(p => p.lat * ky);
+    const base = (v: number) => (u[v].visits as number) * (u[v].minutes as number);
+    const tpk = (v: number) => (u[v].visits as number) * (u[v].preTpk as number);
+    const centro = (g: number[]): [number, number] => { let sx = 0, sy = 0, sw = 0; for (const v of g) { const w = base(v) + 1e-9; sx += x[v] * w; sy += y[v] * w; sw += w; } return [sx / sw, sy / sw]; };
+    const cargaCon = (g: number[], c: [number, number]): number => g.reduce((s, v) => s + base(v) + tpk(v) * Math.hypot(x[v] - c[0], y[v] - c[1]), 0);
+    const miembros = new Map<number, number[]>();
+    u.forEach((p, v) => { if (p.clusterId >= 0) { const a = miembros.get(p.clusterId); if (a) a.push(v); else miembros.set(p.clusterId, [v]); } });
+    const centers = r.centers.slice(), zh = Array.from(r.zoneHours);
+    const fijar = (g: number[], id: number, c: [number, number]): void => {
+        for (const v of g) { u[v].clusterId = id; u[v].load = base(v) + tpk(v) * Math.hypot(x[v] - c[0], y[v] - c[1]); }
+        centers[id] = { lat: c[1] / ky, lon: c[0] / kx }; zh[id] = cargaCon(g, c) / 60;
+    };
+    const cola: [number[], number][] = [];
+    for (const [id, g] of miembros) if (zh[id] * 60 > capMin + 1e-6 && g.length > 1) cola.push([g, id]);
+    while (cola.length) {
+        const [g, id] = cola.pop()!;
+        // eje principal (covarianza ponderada por carga de visita) y corte en la mitad de la carga
+        const c = centro(g); let sxx = 0, sxy = 0, syy = 0;
+        for (const v of g) { const w = base(v) + 1e-9, dx = x[v] - c[0], dy = y[v] - c[1]; sxx += w * dx * dx; sxy += w * dx * dy; syy += w * dy * dy; }
+        const ang = 0.5 * Math.atan2(2 * sxy, sxx - syy), ax = Math.cos(ang), ay = Math.sin(ang);
+        const orden = g.slice().sort((p, q) => ((x[p] - c[0]) * ax + (y[p] - c[1]) * ay) - ((x[q] - c[0]) * ax + (y[q] - c[1]) * ay));
+        const total = orden.reduce((s, v) => s + base(v), 0);
+        let acc = 0, corte = 1;
+        for (let k = 0; k < orden.length - 1; k++) { acc += base(orden[k]); if (acc >= total / 2) { corte = k + 1; break; } corte = k + 1; }
+        const a = orden.slice(0, corte), b = orden.slice(corte);
+        const idB = centers.length; centers.push({ lat: 0, lon: 0 }); zh.push(0);
+        for (const [h, hid] of [[a, id], [b, idB]] as [number[], number][]) {
+            const ch = centro(h); fijar(h, hid, ch);
+            if (zh[hid] * 60 > capMin + 1e-6 && h.length > 1) cola.push([h, hid]);
+        }
+    }
+    r.centers = centers; r.zoneHours = Float64Array.from(zh); r.k = centers.length;
+}
+
+/**
+ * TERRITORIOS CON CODIGOS POSTALES ENTEROS (07-10-2026, decision de Tino). Muchas redes asignan por
+ * codigo postal ("este codigo es de Juan"); construyendo cliente a cliente, el 69% de los codigos de
+ * Espana quedaba repartido entre dos o mas comerciales, y arreglarlo despues (llevar el resto del
+ * codigo al territorio con mas carga suya, haciendo hueco) solo lo bajaba al 48%: los territorios
+ * estan llenos. Aqui el codigo es la pieza desde el principio:
+ *   1. desplazamiento cliente a cliente (travelModel), igual que sin codigo postal;
+ *   2. cada codigo, una unidad: posicion media ponderada, visitas sumadas, minutos de visita y
+ *      salto medios, minutos por km medios; un codigo con mas de 3/4 de comercial de visitas va
+ *      suelto (habra que repartirlo);
+ *   3. clusterPoints sobre las unidades, con el mismo tope; un territorio que aun se pasa se
+ *      divide en dos con las piezas enteras (partirPasados);
+ *   4. cada cliente hereda el territorio de su codigo, y el viaje de la unidad se reparte entre sus
+ *      clientes en proporcion a visitas x minutos por km: la suma cuadra con las horas del territorio.
+ */
+function porCodigoEntero(sub: ClusterPoint[], opt: ZoningOptions): ZoningResult {
+    const n = sub.length;
+    const tm = travelModel(sub, opt);
+    const capMin = opt.capacityHours * 60;
+    const v = new Float64Array(n), mh = new Float64Array(n);
+    for (let i = 0; i < n; i++) {
+        const p = sub[i]; v[i] = p.visits != null && p.visits > 0 ? p.visits : 1;
+        const m = p.minutes != null && p.minutes > 0 ? p.minutes : (p.value * 60) / v[i];
+        mh[i] = m + tm.hop[i];
+    }
+    const grupos = new Map<string, number[]>();
+    for (let i = 0; i < n; i++) { const k = sub[i].postal ? "c" + sub[i].postal : "i" + i; const g = grupos.get(k); if (g) g.push(i); else grupos.set(k, [i]); }
+    const miembros: number[][] = [];
+    for (const g of grupos.values()) {
+        let carga = 0; for (const i of g) carga += v[i] * mh[i];
+        // mas de 3/4 de comercial en visitas: va suelto desde el principio (habra que repartirlo).
+        // Medido 07-10-2026: con 0,5 quedaban partidos el 5,6-8,8% de los codigos; con 0,75, el
+        // 2,3-4,9%, con igual o menos territorios y el mismo tope.
+        if (g.length > 1 && carga > 0.75 * capMin) for (const i of g) miembros.push([i]); else miembros.push(g);
+    }
+    const unidades: ClusterPoint[] = miembros.map(g => {
+        let sv = 0, sw = 0, la = 0, lo = 0, svm = 0, svt = 0;
+        for (const i of g) { const w = v[i] * mh[i] + 1e-9; sw += w; la += sub[i].lat * w; lo += sub[i].lon * w; sv += v[i]; svm += v[i] * mh[i]; svt += v[i] * tm.tpk[i]; }
+        return { customerId: "", lat: la / sw, lon: lo / sw, value: 1, visits: sv, minutes: svm / sv, preTpk: svt / sv, clusterId: -1 };
+    });
+    const r = clusterPoints(unidades, opt);
+    partirPasados(unidades, r, opt);
+    unidades.forEach((u, k) => {
+        const g = miembros[k];
+        let sVT = 0; for (const i of g) sVT += v[i] * tm.tpk[i];
+        const viaje = Math.max(0, (u.load ?? 0) - (u.visits as number) * (u.minutes as number));
+        for (const i of g) {
+            sub[i].clusterId = u.clusterId;
+            sub[i].load = v[i] * mh[i] + (u.clusterId >= 0 && sVT > 0 ? viaje * (v[i] * tm.tpk[i]) / sVT : 0);
+        }
+    });
+    return r;
+}
+
+/**
+ * Cargas de cada cliente a partir de una asignacion ya hecha (al restaurar un resultado guardado,
+ * cache.ts): mismo modelo de desplazamiento por area y masa de tierra que clusterByArea, y la base
+ * de cada territorio en `centers`. Con codigos postales enteros (opt.wholePostal) se reproduce el
+ * reparto de porCodigoEntero: el viaje se mide desde el centro del codigo y cada cliente paga su parte
+ * (v x minutos por km); un codigo de mas de 3/4 de comercial, cliente a cliente. Medido 07-10-2026:
+ * sin esto, hasta 232 min de diferencia por cliente y +0,25% del total.
+ */
+export function cargasDesde(points: ClusterPoint[], areaOfTerritory: Int32Array | null, landOf: Int32Array,
+                            centers: { lat: number; lon: number }[], opt: ZoningOptions): void {
+    const grupos = new Map<string, number[]>();
+    points.forEach((p, i) => {
+        if (p.clusterId < 0) return;
+        const k = (areaOfTerritory ? areaOfTerritory[p.clusterId] : 0) + ":" + landOf[i];
+        const g = grupos.get(k); if (g) g.push(i); else grupos.set(k, [i]);
+    });
+    for (const g of grupos.values()) {
+        const sub = g.map(i => points[i]);
+        const tm = travelModel(sub, opt);
+        let latM = 0; for (const p of sub) latM += p.lat; latM /= sub.length;
+        const kx = (Math.PI / 180) * R_TIERRA * Math.cos(latM * Math.PI / 180), ky = (Math.PI / 180) * R_TIERRA;
+        const vv = sub.map(p => (p.visits != null && p.visits > 0 ? p.visits : 1));
+        const mh = sub.map((p, q) => (p.minutes != null && p.minutes > 0 ? p.minutes : (p.value * 60) / vv[q]) + tm.hop[q]);
+        // punto desde el que se mide el viaje: el cliente, o el centro de su codigo (codigos enteros)
+        const desde: [number, number][] = sub.map(p => [p.lat, p.lon]);
+        if (opt.wholePostal) {
+            const cods = new Map<string, number[]>();
+            sub.forEach((p, q) => { if (p.postal) { const a = cods.get(p.postal); if (a) a.push(q); else cods.set(p.postal, [q]); } });
+            for (const g of cods.values()) {
+                let carga = 0, la = 0, lo = 0, sw = 0;
+                for (const q of g) { const w = vv[q] * mh[q] + 1e-9; carga += vv[q] * mh[q]; la += sub[q].lat * w; lo += sub[q].lon * w; sw += w; }
+                if (g.length > 1 && carga > 0.75 * opt.capacityHours * 60) continue;
+                for (const q of g) desde[q] = [la / sw, lo / sw];
+            }
+        }
+        sub.forEach((p, q) => {
+            const c = centers[p.clusterId];
+            const d = Math.hypot((desde[q][1] - c.lon) * kx, (desde[q][0] - c.lat) * ky);
+            p.load = vv[q] * (mh[q] + d * tm.tpk[q]);
+        });
+    }
+    for (const p of points) if (p.clusterId < 0) { const v = p.visits != null && p.visits > 0 ? p.visits : 1; p.load = v * (p.minutes != null && p.minutes > 0 ? p.minutes : (p.value * 60) / v); }
+}
+
 export function clusterByArea(points: ClusterPoint[], areaOf: Int32Array, nAreas: number, opt: ZoningOptions,
                               landOf: Int32Array | null = null): AreaZoningResult {
     const n = points.length;
@@ -1650,7 +1832,8 @@ export function clusterByArea(points: ClusterPoint[], areaOf: Int32Array, nAreas
         let parte = 0;
         for (const idx of [...porTierra.entries()].sort((p, q) => p[0] - q[0]).map(e => e[1])) {
         const sub = idx.map(i => points[i]);
-        const r = clusterPoints(sub, { ...opt, seed: (opt.seed ?? 20260928) ^ (a * 2654435761 >>> 0) ^ (parte++ * 40503) });
+        const semilla = (opt.seed ?? 20260928) ^ (a * 2654435761 >>> 0) ^ (parte++ * 40503);
+        const r = opt.wholePostal ? porCodigoEntero(sub, { ...opt, seed: semilla }) : clusterPoints(sub, { ...opt, seed: semilla });
         const base = centers.length;
         for (let c = 0; c < r.k; c++) { centers.push(r.centers[c]); zoneHours.push(r.zoneHours[c]); areaOfT.push(a); areaHours[a] += r.zoneHours[c]; }
         areaTerritories[a] += r.k;

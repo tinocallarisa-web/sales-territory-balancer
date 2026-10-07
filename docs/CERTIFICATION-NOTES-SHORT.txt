@@ -11,8 +11,7 @@ the FREE result is drawn (automatic areas, bar speed). Exports (CSV, map PDF) ar
 Pro: without a licence they show a note and Power BI's purchase notification.
 
 TESTING - FREE (no licence)
-1. Bind Customer ID, Latitude, Longitude, Visits per month, Minutes per visit.
-   The map shows grey points and asks for areas.
+1. Bind Customer ID, Latitude, Longitude, Visits, Minutes: grey points appear.
 2. Type 5 in Areas (bar above the map): areas, badges and legend appear with the
    salespeople needed. Works in READING view too; nothing is persisted there.
 3. Change Hours/salesperson, km/h or Road x: it recomputes.
@@ -27,9 +26,10 @@ one-page PDF (base64) written by the visual from the map canvas. Subject to the
 tenant setting "Allow downloads from custom visuals"; if blocked, a note says so.
 
 PRIVACY / NETWORK
-No fetch, XMLHttpRequest, external scripts, fonts or telemetry. Only privilege:
-ExportContent. No tile basemap on purpose; outlines are embedded (Natural Earth,
-src/outlines.ts). No innerHTML. Only the bar's values are persisted (edit mode).
+No fetch, XMLHttpRequest, external scripts, fonts or telemetry. Privileges, both
+local: ExportContent (exports), LocalStorage (last result: territory per client,
+no data values; avoids recomputing on page return). No tile basemap; outlines
+embedded (Natural Earth). No innerHTML. Bar values persisted in edit mode only.
 
 LICENSING
 Plans sales-territory-balancer-pro and partner, matched on a Service ID ending in

@@ -81,7 +81,7 @@ inside the visual, so readers can try "what if a salesperson had 120 hours" in r
   <tr><td>Latitude, Longitude</td><td>Numeric, decimal degrees</td><td>Required. Rows with values out of range are ignored.</td></tr>
   <tr><td>Visits per month</td><td>Numeric</td><td>How often the point is visited; 0.5 means every two months.</td></tr>
   <tr><td>Minutes per visit</td><td>Numeric</td><td>Time on site per visit. Without Visits and Minutes every point counts as one hour of visits a month, and the split is by number of clients.</td></tr>
-  <tr><td>Postal code</td><td>Text or number</td><td>Optional, for automatic areas. It does not change the result much — the visual already keeps towns together — but each area becomes a set of whole postal codes, the unit many companies assign territories in, and the code goes into the CSV export. It is ignored when you bind Area. A code wider than 25 km (a capital's code given to a whole province, say) is split into its towns. If the column is not geographic at all — fewer than half of the clients have their nearest client in the same code — it is ignored and the map says so.</td></tr>
+  <tr><td>Postal code</td><td>Text or number</td><td>Optional. Bind it if you assign territories by postal code: each <strong>territory</strong> is then built from whole postal codes, so a code belongs to one salesperson (only codes with more work than about three quarters of a salesperson are shared). Automatic areas are also built from whole codes, and the code goes into the CSV export. With the Area field, areas follow your Area value, and territories still keep codes whole. A code wider than 25 km (a capital's code given to a whole province, say) is split into its towns. If the column is not geographic at all — fewer than half of the clients have their nearest client in the same code — it is ignored and the map says so.</td></tr>
   <tr><td>Speed (km/h) <span class="pro">Pro</span></td><td>Numeric</td><td>Travel speed around this point — e.g. 25 in a city centre, 45 in its outskirts, 70 in the countryside. Overrides the bar's km/h for that point.</td></tr>
   <tr><td>Area <span class="pro">Pro</span></td><td>Any text</td><td>Your commercial areas. Each client stays in its own Area value; territories are built inside each area and never cross it. When bound, the bar's Areas number is ignored.</td></tr>
   <tr><td>Tooltips</td><td>Measures</td><td>Extra values on hover; report tooltip pages are supported.</td></tr>
@@ -197,6 +197,13 @@ it has every row ("Loading points… 30,000 so far"), then computes on the full 
 points…"). The only ceiling is the memory Power BI gives a visual. On the sample data, 20,000 clients take
 about 5 seconds and 41,000 about 10; a few thousand take a second or two.</p></details>
 
+<details><summary>Does it compute again every time I come back to the page?</summary>
+<p>No, if the data and the parameters have not changed: the last result is kept in your browser through
+Power BI's local storage, and the map comes back at once. It computes again when something changed, when
+the result is more than 29 days old, when you are not signed in, or when your administrator has switched
+off <em>Allow access to the browser's local storage</em>. The result of about 40,000 clients fits; for much
+larger models it may not, and the visual computes again.</p></details>
+
 <details><summary>Everything collapsed into a single point</summary>
 <p>Customer ID is not bound, so Power BI aggregated every coordinate into one value. Bind an identifier
 with one row per point of sale.</p></details>
@@ -207,7 +214,9 @@ minutes, and Hours / salesperson / month must be monthly hours. Then check the r
 decide the travel share, which you can see per client in the tooltip.</p></details>
 
 <h2>Privacy</h2>
-<p>The visual makes no network requests, stores nothing and needs no companion service. See the
+<p>The visual makes no network requests and needs no companion service. To avoid computing again when you
+come back to a page, it keeps its last result — the territory number of each client, nothing from your
+data — in your browser through Power BI's local storage. See the
 <a href="privacy.html">Privacy Policy</a>.</p>
 
 <h2>Contact</h2>

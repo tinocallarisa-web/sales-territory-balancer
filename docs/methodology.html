@@ -225,7 +225,7 @@ salespeople needed = total workload ÷ the workload one salesperson can carry.</
 <div class="eq"><span class="lbl">Salespeople needed in area a</span>
 <var>N<sub>a</sub></var> = ∑<sub><var>i</var> ∈ <var>a</var></sub> <var>L<sub>i</sub></var> ⁄ <var>C</var></div>
 <p>Shown to one decimal on the map (one badge per area) and in the legend, with the total. Every client
-counts: a remnant that fits in no full territory becomes a <em>partial</em> territory (§7.4), so a small
+counts: a remnant that fits in no full territory becomes a <em>partial</em> territory (§7.5), so a small
 island shows, for instance, 0.3 salespeople. Only clients you flag as outliers (§3.3) are excluded.
 Because <var>L<sub>i</sub></var> depends on the territory's base, <var>N<sub>a</sub></var> is computed
 after the territories (§7), not before.</p>
@@ -326,7 +326,21 @@ outward, taking the nearest clients until one salesperson's workload is reached 
 search then moves clients whose 10 nearest neighbours are mostly in another territory, when the cap
 allows (single moves, swaps and two-step chains).</p>
 
-<h3>7.4 Post-processing</h3>
+<h3>7.4 Whole postal codes</h3>
+<p>When a geographic postal code is bound, territories are built from whole codes, the unit in which
+many companies assign territories ("this code is Juan's"). Travel is first computed client by client
+(§4); then each code becomes one piece — its load-weighted position, summed visits, mean visit and hop
+time, mean minutes per kilometre — and the territories of §7.1–7.3 are built from those pieces. Each
+client inherits its code's territory, and the piece's travel is shared among its clients in proportion
+to visits × minutes per kilometre, so the clients' hours add up to the territory's. A code carrying
+more than three quarters of a salesperson's visit time is kept as loose clients, since it will have to
+be shared anyway. With pieces this large the packing does not always fit under the cap, so a territory
+still above it is <strong>divided in two</strong> along its principal axis, pieces whole, until it fits;
+each half takes its own base. Built client by client, 69% of the Spanish sample's postal codes ended up
+shared between two or more salespeople; with whole codes, 2.3% (4.9% in Mexico and the United States),
+mostly codes with more work than one salesperson.</p>
+
+<h3>7.5 Post-processing</h3>
 <ol>
   <li><strong>Reclaim.</strong> A client moves to a closer territory with room; if none has room, a chain of
   up to six evictions toward territories with room is tried, accepted only if it shortens the total
@@ -381,6 +395,13 @@ to the mainland through Wisconsin. Territories are computed per landmass (§7).<
 random choice uses a seeded generator (mulberry32) whose seed depends only on the area and landmass. The
 same data and parameters always give the same areas and territories, whatever order Power BI delivers the
 rows in. Without a Customer ID, ties fall back to row order.</p>
+<p><strong>Returning to a page.</strong> Power BI discards a visual when you leave its page. The last
+result — the territory of each client, by position, plus the hours per territory and area and the
+territories' centres, compressed with gzip — is kept through Power BI's local storage API, under a
+fingerprint of the data and parameters. On return it is used if the fingerprint matches; each client's
+hours are then recomputed from its territory's centre with the same model (differences of a minute or two
+per client from rounding; totals unchanged). About 40,000 clients fit in the 100 KB the API allows
+(83 KB measured); otherwise the visual computes again.</p>
 <p><strong>Performance</strong> (measured in Node.js on the sample datasets of §12):</p>
 <table>
   <tr><th>Step</th><th class="n">Clients</th><th class="n">Time</th></tr>
@@ -426,6 +447,7 @@ province labels taken from the nearest city). Measured on the current version:</
   <tr><td>Clients isolated in another area's town (≤ 3 own vs ≥ 4 foreign neighbours within 8 km)</td><td>0, also with shuffled row order</td></tr>
   <tr><td>Same area with and without postal code (5 and 7 areas)</td><td>99–100% of the workload</td></tr>
   <tr><td>Territories crossing between islands</td><td>0 (Balearics: 2 before landmasses were introduced)</td></tr>
+  <tr><td>Postal codes shared between two or more territories (postal code bound)</td><td>Spain 2.3%, Mexico 4.9%, United States 4.9% (69%, 45% and 67% when territories are built client by client); most of the rest carry more work than one salesperson</td></tr>
   <tr><td>Territories above the cap (140 h)</td><td>0; the largest is exactly 140.0 h (Mexico 351 territories, Spain with islands 652)</td></tr>
   <tr><td>Clients without a territory</td><td>0</td></tr>
 </table>

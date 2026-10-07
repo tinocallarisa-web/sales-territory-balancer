@@ -194,6 +194,10 @@
         {
             "name": "ExportContent",
             "essential": false
+        },
+        {
+            "name": "LocalStorage",
+            "essential": false
         }
     ]
 }

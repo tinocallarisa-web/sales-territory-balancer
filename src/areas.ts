@@ -72,9 +72,6 @@ export function buildAreas(points: ClusterPoint[], postal: ((p: ClusterPoint) =>
     // Postal code, o los inventados del 04-10-2026, que juntaban clientes a 250-465 km) sale
     // 0,00, y como un codigo nunca se parte, las areas se mezclaban. Por debajo de 0,5 se
     // ignora el codigo y cada cliente es su propia unidad; el visual lo dice en el mapa.
-    // Con el campo Area el codigo postal no interviene (manda el dato del usuario, cliente a
-    // cliente; decision de Tino 07-10-2026): solo se evalua en areas automaticas.
-    if (mode === "field") postal = null;
     if (postal && tri) {
         const keys = points.map(p => postal(p) ?? "");
         const cnt = new Map<string, number>(); for (const k of keys) cnt.set(k, (cnt.get(k) ?? 0) + 1);
@@ -91,6 +88,11 @@ export function buildAreas(points: ClusterPoint[], postal: ((p: ClusterPoint) =>
             if (postalCoherence < 0.5) { postal = null; postalIgnored = true; }
         }
     }
+
+    // Con el campo Area el codigo postal no forma las areas (manda el dato del usuario, cliente a
+    // cliente; decision de Tino 07-10-2026). La coherencia de arriba si se evalua: decide si los
+    // territorios pueden juntar cada codigo entero (wholePostal).
+    if (mode === "field") postal = null;
 
     // --- PUEBLOS (06-10-2026): clientes a menos de 2 km de otro (aristas de Delaunay) o en la
     // misma coordenada (mismo edificio: Delaunay los ignora) forman un pueblo. Una mancha de mas
