@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Privacy Policy — Sales Territory Balancer by TCViz</title>
+<style>
+  :root{--bg:#FAF9F5;--bg2:#EDE9DE;--bd:#F5F3ED;--line:#DAD9D4;
+        --t1:#3D3929;--t2:#535146;--t3:#83827D;--acc:#C96442;--accd:#B05730}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--t1);
+       font-family:'Segoe UI',system-ui,-apple-system,sans-serif;line-height:1.65}
+  .wrap{max-width:840px;margin:0 auto;padding:48px 24px 80px}
+  header{border-bottom:3px solid var(--acc);padding-bottom:20px;margin-bottom:36px}
+  h1{margin:0 0 6px;font-size:32px;letter-spacing:-.5px}
+  h2{margin:36px 0 12px;font-size:21px;color:var(--accd)}
+  h3{margin:24px 0 8px;font-size:16px;color:var(--t1)}
+  .sub{color:var(--t3);font-size:14px;margin:0}
+  .card{background:#fff;border:1px solid var(--line);border-radius:10px;padding:20px 24px;margin:20px 0}
+  .ok{border-left:4px solid #2E7D32}
+  .note{background:var(--bg2);border-left:4px solid var(--acc);padding:16px 20px;border-radius:0 8px 8px 0;margin:20px 0}
+  table{width:100%;border-collapse:collapse;margin:16px 0;font-size:14px}
+  th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{background:var(--bg2);font-weight:600}
+  code{background:var(--bg2);padding:2px 6px;border-radius:4px;font-size:13px}
+  ul{padding-left:22px}li{margin:6px 0}
+  a{color:var(--accd)}
+  footer{margin-top:56px;padding-top:20px;border-top:1px solid var(--line);
+         color:var(--t3);font-size:13px;display:flex;gap:18px;flex-wrap:wrap}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <h1>Privacy Policy</h1>
+  <p class="sub">Sales Territory Balancer — a Power BI custom visual by TCViz · Last updated: 29 September 2026</p>
+</header>
+
+<div class="card ok">
+  <h3 style="margin-top:0">The short version</h3>
+  <p style="margin-bottom:0">Sales Territory Balancer does not collect, transmit, store or share any data.
+  It has no network access of any kind. The territories are computed entirely inside the Power BI
+  rendering sandbox on your own machine or in your own tenant, and the locations of your points of
+  sale never leave it.</p>
+</div>
+
+<h2>1. What the visual receives</h2>
+<p>Power BI passes the visual only the fields you place in its field wells. The visual has no route to
+the rest of your dataset, your Power BI workspace, your account or your device.</p>
+
+<table>
+  <tr><th>Field well</th><th>What it receives</th></tr>
+  <tr><td><code>Customer ID</code></td><td>One identifier per point of sale, shown in the tooltip and in the CSV export.</td></tr>
+  <tr><td><code>Latitude</code>, <code>Longitude</code></td><td>The coordinates of each point, used in memory to compute distances and draw the map.</td></tr>
+  <tr><td><code>Hours per month</code></td><td>Monthly workload per point, used as its weight.</td></tr>
+  <tr><td><code>Area</code></td><td>Optional commercial area label; territories are built inside it. Shown in the tooltip and the CSV.</td></tr>
+  <tr><td><code>Visits per month</code>, <code>Minutes per visit</code></td><td>Optional. When bound, the workload is visits × (minutes + travel time) instead of the value field.</td></tr>
+</table>
+
+<h2>2. Network access</h2>
+<div class="note">
+  <strong>The visual makes no network requests whatsoever.</strong> There are no <code>fetch</code> or
+  <code>XMLHttpRequest</code> calls, no external scripts, no fonts loaded from a CDN, no analytics,
+  no telemetry, no error reporting and no advertising. Its <code>privileges</code> array in
+  <code>capabilities.json</code> is empty, which means Power BI itself blocks any outbound
+  connection at the platform level.
+</div>
+<p>This is also why the map has <strong>no street background</strong>. A background map would mean
+fetching tiles from a third-party server, and every tile request would tell that server which area
+of the world you are looking at — which, for a visual that handles customer addresses, is exactly
+the information that should stay inside your report. Territories read perfectly well without a
+basemap: what matters is their shape relative to each other.</p>
+
+<h2>3. What is written, and where</h2>
+<p>While a report is being <em>edited</em>, the visual persists the four values of its control bar —
+capacity in hours per month, tolerance, average speed and road factor — inside your own
+<code>.pbix</code> report file, through the standard Power BI <code>persistProperties</code> API, so
+the report opens with the settings its author chose. In <em>reading view</em> nothing is written:
+a reader can change the values to explore, and the report is not modified.</p>
+<p>These are numbers you typed, never data values. They travel nowhere else.</p>
+
+<h3>What is not stored</h3>
+<ul>
+  <li>No cookies, <code>localStorage</code> or <code>sessionStorage</code></li>
+  <li>No browser fingerprinting or device identifiers</li>
+  <li>No copies of your data outside the current rendering pass</li>
+  <li>No personal information of any kind</li>
+</ul>
+
+<h2>4. CSV and PDF export</h2>
+<p>The <strong>Export CSV</strong> button builds a file in your browser's memory from the current
+assignment (customer ID, territory, workload) and hands it to your browser as a download. <strong>Export map
+PDF</strong> does the same with a picture of the map as it is on screen. Nothing is uploaded anywhere;
+the files exist only where you choose to save them.</p>
+
+<h2>5. Licensing</h2>
+<p>This version of the visual has no paid tier and performs no licence check. If a Pro tier is added
+in a future version, entitlement will be checked only through Microsoft's official
+<code>IVisualLicenseManager</code> API, which is part of Power BI itself, and this policy will be
+updated and dated accordingly.</p>
+
+<h2>6. Support requests</h2>
+<p>If you open an issue on GitHub or email us, we receive whatever you choose to include — typically
+your description, the visual version and any screenshots you attach. Please redact anything
+confidential before sending. We use that information only to answer you, and we do not share it.</p>
+
+<h2>7. Children</h2>
+<p>The visual is a professional data tool, not directed at children, and collects nothing from anyone.</p>
+
+<h2>8. Changes</h2>
+<p>If this policy changes, the revised version will be published here with a new date and summarised
+in the <a href="changelog.html">changelog</a>.
+Because the visual collects nothing, no change can retroactively affect data already handled.</p>
+
+<h2>9. Contact</h2>
+<p>Questions about this policy: <a href="mailto:support@tcviz.com">support@tcviz.com</a><br>
+Bug reports: <a href="mailto:support@tcviz.com?subject=Sales%20Territory%20Balancer%20bug%20report">support@tcviz.com</a></p>
+
+<footer>
+  <span>© 2026 TCViz</span>
+  <a href="support.html">Support</a>
+  <a href="terms.html">Terms</a>
+  <a href="changelog.html">Changelog</a>
+</footer>
+
+</div>
+</body>
+</html>

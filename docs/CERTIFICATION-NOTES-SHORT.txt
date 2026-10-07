@@ -1,0 +1,38 @@
+Sales Territory Balancer 1.0.0.0 - GUID clusterWeighted7852F42A6D8A494CB286C44ACCF04FBB
+(the GUID keeps the prototype's working name)
+
+SOURCE CODE
+github.com/tinocallarisa-web/sales-territory-balancer, branch "certification". PUBLIC.
+
+TESTING - NO KEY NEEDED
+No activation key, no paid tier: every capability is free, no licence check, no watermark.
+
+WHAT TO CHECK
+Bind Customer ID, Latitude, Longitude, Visits per month + Minutes per visit (or Hours per
+month), optionally Area (text). Bar above the map: hours per salesperson, tolerance, km/h,
+road factor, automatic areas. Change any value: veil "Balancing N points", recompute - in
+READING view too, nothing persisted there. Panel: territories, band status, travel share, one
+chip per area or territory. Tooltip: id, load, territory, area. Deterministic. Export CSV uses
+host.downloadService (privilege ExportContent): Power BI's own dialog, subject to the tenant
+setting "Allow downloads from custom visuals"; if not allowed, the panel says so. Export map
+PDF (Pro): same API, base64 PDF built in the visual (one JPEG page, no library, no network).
+
+PRIVACY - PLEASE VERIFY, IT IS THE POINT OF THE DESIGN
+No network calls of any kind: no fetch, no XMLHttpRequest, no external scripts or fonts, no
+telemetry. The only privilege is ExportContent (the CSV download above). Deliberately NO
+tile basemap: a tile request tells a third party where the user is looking, and this visual
+handles customer addresses; the bundle has no tile URL. The outlines behind the points are
+EMBEDDED (Natural Earth, public domain, src/outlines.ts), drawn from the package. Only the bar's five numbers are
+persisted (edit mode, persistProperties). No innerHTML: DOM built with createElement/textContent.
+
+ALGORITHM, FOR CONTEXT
+Areas first (workload-weighted k-means, or the user's Area field); inside each, capacitated
+clustering by a power diagram with dual ascent (bias per territory, points join the one
+minimising distance^2 + bias), Lloyd steps, band-enforcing local search, island clean-up.
+Distances: straight line x road factor. 40,000 points in ~15 s. Reads and draws only.
+
+Toolchain: tools 7.2.1, API 5.11.1, TypeScript 5.5.4, ESLint 9 with eslint-plugin-powerbi-
+visuals (3 files, 0 errors). npm audit 0. Rendering events on every update() path;
+renderingFinished is raised before the balancing starts, since it runs asynchronously.
+
+Support/privacy/terms: tinocallarisa-web.github.io/sales-territory-balancer/
