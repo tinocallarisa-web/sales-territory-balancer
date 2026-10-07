@@ -53,11 +53,20 @@ function main() {
         visualTs: fs.readFileSync(VISUAL_TS, "utf8"),
         pbivizJson: fs.readFileSync(PBIVIZ_JSON, "utf8")
     };
+    let restaurado = false;
     const restore = () => {
+        if (restaurado) return;
+        restaurado = true;
         fs.writeFileSync(VISUAL_TS, originals.visualTs, "utf8");
         fs.writeFileSync(PBIVIZ_JSON, originals.pbivizJson, "utf8");
         console.log("  <- source restored to production state");
     };
+    // Una compilacion INTERRUMPIDA (Ctrl+C, terminal cerrada, proceso cortado) dejaba el fuente
+    // parcheado: Pro forzado, GUID con _test y "(TEST)" en el nombre (07-10-2026, dos veces).
+    for (const sig of ["SIGINT", "SIGTERM", "SIGHUP", "SIGBREAK"]) {
+        try { process.on(sig, () => { restore(); process.exit(130); }); } catch (e) { /* senal no disponible en esta plataforma */ }
+    }
+    process.on("exit", restore);
 
     for (const p of PATCHES) {
         if (originals.visualTs.indexOf(p.find) === -1) {

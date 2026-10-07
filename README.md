@@ -20,15 +20,15 @@ name; it is immutable.
 | File | What it does |
 |---|---|
 | `src/visual.ts` | Power BI integration: data parsing, control bar, map (Leaflet, canvas), licensing, filters, bookmarks, exports |
-| `src/clustering.ts` | Workload and travel model; territories (towns, power diagram with dual ascent, post-processing); outliers; `clusterByArea` |
-| `src/areas.ts` | Commercial areas: postal codes / towns as units, weighted k-means++ with restarts, land-border contiguity, islands, straggler vote |
+| `src/clustering.ts` | Workload and travel model; territories; outliers |
+| `src/areas.ts` | Commercial areas |
 | `src/regions.ts` | Region and landmass of each point from the embedded outlines; land groups; land-border test |
 | `src/outlines.ts` | Embedded Natural Earth outlines, region names, land-border adjacency, landmasses (generated) |
 | `src/settings.ts`, `src/formatting.ts` | Settings parsing and the modern format pane |
 | `src/basicareas.ts`, `src/contiguity.ts`, `src/pmedian.ts` | Experiments kept for reference; not imported by the visual |
 | `stringResources/` | English and Spanish strings |
 | `docs/` | Pages published with GitHub Pages, and the certification notes |
-| `notes/` | Technical specification of the production code path and verified references |
+| `notes/` | Verified references |
 
 ## Build
 

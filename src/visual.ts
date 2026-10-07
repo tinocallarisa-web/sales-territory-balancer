@@ -50,6 +50,9 @@ const CLUSTER_COLORS: string[] = [
     "#FF595E", "#FFCA3A", "#C96442", "#06D6A0", "#118AB2"
 ];
 
+/** Colores de TERRITORIO dentro de un area enfocada (cualitativa, distinta de la de areas). */
+const TERR_COLORS: string[] = ["#4E79A7", "#F28E2B", "#E15759", "#76B7B2", "#59A14F", "#EDC948", "#B07AA1", "#FF9DA7", "#9C755F", "#86BCB6"];
+
 function clusterColor(ci: number): string {
     return CLUSTER_COLORS[ci % CLUSTER_COLORS.length];
 }
@@ -312,6 +315,12 @@ export class Visual implements IVisual {
     private emitEvents = true;
     /** Tamano del visual en el ultimo update (para no reencuadrar si no cambia). */
     private lastViewport = "";
+    /** Lienzo de Leaflet de los puntos (tambien para los contornos de territorio). */
+    private canvasRenderer: L.Canvas | null = null;
+    /** Contornos y etiquetas de los territorios del area enfocada. */
+    private terrLayer: L.LayerGroup | null = null;
+    /** Color de cada territorio del area enfocada (vacio sin foco de area). */
+    private terrColor = new Map<number, string>();
     /** Filas que habia al pedir el ultimo bloque (fetchMoreData); 0 = sin peticion en curso. */
     private filasPedidas = 0;
     /** Marca de las builds de test; muestra tambien el estado de la cache del navegador. */
@@ -733,7 +742,7 @@ export class Visual implements IVisual {
                     detour: live.detour,
                     // Camino de produccion de clusterPoints: pueblos + diagrama de potencia en
                     // subllamadas + posproceso, sin reequilibrar por banda (ver la cabecera de
-                    // clustering.ts y notes/especificacion-algoritmo.md).
+                    // clustering.ts).
                     growthOnly: true,
                     // Sin radio maximo: toda la carga entra en un territorio (los restos que no
                     // caben quedan como territorio parcial). Los apartados se marcan antes, solo
@@ -893,7 +902,7 @@ export class Visual implements IVisual {
 
     // ── Map rendering ───────────────────────────────────────────────────────────
     private destroyMap(): void {
-        this.badges = []; this.dots = [];
+        this.badges = []; this.dots = []; this.terrLayer = null; this.etiquetas = [];
         if (this.map) {
             this.map.remove();
             this.map = null;
@@ -913,9 +922,10 @@ export class Visual implements IVisual {
     private dots: { mk: L.CircleMarker; r: number; p: ClusterPoint }[] = [];
 
     /** Estilo de un punto segun el foco (lo unico del mapa que depende de el). */
-    private dotStyle(p: ClusterPoint, r: number): { radius: number; color: string; weight: number; fillOpacity: number; opacity: number } {
+    private dotStyle(p: ClusterPoint, r: number): { radius: number; color: string; fillColor: string; weight: number; fillOpacity: number; opacity: number } {
         const on = this.inFocus(p), foco = !!this.focus, outlier = p.clusterId < 0;
         return {
+            fillColor: this.fillOf(p),
             radius: on && foco ? r + 1.5 : r,
             color: this.hc.on ? (on && foco ? this.hc.sel : outlier ? this.hc.fg : this.hc.bg) : outlier ? "#8a8880" : on && foco ? "#222222" : "#ffffff",
             // borde proporcional al radio: con puntos pequenos, 0,8 px de borde blanco tapaban el color
@@ -931,14 +941,109 @@ export class Visual implements IVisual {
      */
     private restyleDots(): boolean {
         if (!this.map || !this.dots.length) return false;
+        this.prepararTerritorios();
         const r = this.settings.mapSettings.markerSize, z = this.lastZoomScale;
         for (const d of this.dots) {
             const st = this.dotStyle(d.p, r);
             d.r = st.radius;
-            d.mk.setStyle({ color: st.color, weight: st.weight, fillOpacity: st.fillOpacity, opacity: st.opacity });
+            d.mk.setStyle({ color: st.color, fillColor: st.fillColor, weight: st.weight, fillOpacity: st.fillOpacity, opacity: st.opacity });
             d.mk.setRadius(Math.max(0.5, st.radius * z));
         }
+        this.dibujarTerritorios();
         return true;
+    }
+
+    /** Color de relleno de un punto: territorio si su area esta enfocada; si no, su area. */
+    private fillOf(p: ClusterPoint): string {
+        if (this.hc.on) return p.clusterId < 0 ? this.hc.bg : this.hc.fg;
+        if (this.waitingAreas) return "#6B7B8C";
+        if (p.clusterId < 0) return "#f4f3ef";
+        const tc = this.terrColor.get(p.clusterId);
+        if (tc) return tc;
+        const reg = this.lastAreas;
+        return reg ? clusterColor(reg.res.areaOfTerritory[p.clusterId]) : clusterColor(p.clusterId);
+    }
+
+    /**
+     * VER LOS TERRITORIOS (07-10-2026): con un area enfocada, cada territorio lleva su color. Se
+     * asignan de forma que los 6 territorios mas cercanos (por su base) nunca compartan color.
+     */
+    private prepararTerritorios(): void {
+        this.terrColor.clear();
+        const reg = this.lastAreas;
+        if (!this.focus || this.focus.kind !== "area" || !reg) return;
+        const a = this.focus.id, res = reg.res;
+        const ts: number[] = [];
+        for (let t = 0; t < res.k; t++) if (res.areaOfTerritory[t] === a) ts.push(t);
+        const lat0 = ts.reduce((s, t) => s + res.centers[t].lat, 0) / Math.max(1, ts.length);
+        const kx = Math.cos(lat0 * Math.PI / 180);
+        const d2 = (u: number, v: number): number => ((res.centers[u].lon - res.centers[v].lon) * kx) ** 2 + (res.centers[u].lat - res.centers[v].lat) ** 2;
+        for (const t of ts) {
+            const vecinos = ts.filter(u => u !== t && this.terrColor.has(u)).sort((u, v) => d2(t, u) - d2(t, v)).slice(0, 6);
+            const usados = new Set(vecinos.map(u => this.terrColor.get(u)));
+            this.terrColor.set(t, TERR_COLORS.find(c => !usados.has(c)) ?? TERR_COLORS[t % TERR_COLORS.length]);
+        }
+    }
+
+    /** Contorno (envolvente convexa) y etiqueta de horas de cada territorio del area enfocada. */
+    private dibujarTerritorios(): void {
+        if (this.terrLayer) { this.terrLayer.remove(); this.terrLayer = null; }
+        this.etiquetas = [];
+        const reg = this.lastAreas;
+        if (!this.map || !this.terrColor.size || !reg) return;
+        const porT = new Map<number, ClusterPoint[]>();
+        for (const p of this.lastPoints) if (this.terrColor.has(p.clusterId)) { const a = porT.get(p.clusterId); if (a) a.push(p); else porT.set(p.clusterId, [p]); }
+        const capa = L.layerGroup();
+        this.etiquetas = [];
+        for (const [t, pts] of porT) {
+            const color = this.hc.on ? this.hc.fg : this.terrColor.get(t)!;
+            const h = reg.res.zoneHours[t];
+            // envolvente convexa (cadena monotona de Andrew) en lon/lat: a escala de un territorio basta
+            const v = pts.map(p => [p.lon, p.lat] as [number, number]).sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+            const cruz = (o: number[], a: number[], b: number[]): number => (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0]);
+            const inf: [number, number][] = [], sup: [number, number][] = [];
+            for (const q of v) { while (inf.length >= 2 && cruz(inf[inf.length - 2], inf[inf.length - 1], q) <= 0) inf.pop(); inf.push(q); }
+            for (let i = v.length - 1; i >= 0; i--) { const q = v[i]; while (sup.length >= 2 && cruz(sup[sup.length - 2], sup[sup.length - 1], q) <= 0) sup.pop(); sup.push(q); }
+            const casco = inf.slice(0, -1).concat(sup.slice(0, -1));
+            if (casco.length >= 3) {
+                L.polygon(casco.map(c => [c[1], c[0]] as L.LatLngExpression), {
+                    renderer: this.canvasRenderer ?? undefined, color, weight: 1.5, opacity: 0.9, fill: true, fillColor: color, fillOpacity: 0.07, interactive: false
+                }).addTo(capa);
+            }
+            {
+                let la = 0, lo = 0; for (const p of pts) { la += p.lat; lo += p.lon; }
+                const el = document.createElement("div");
+                el.textContent = `${h.toFixed(0)} h`;
+                el.title = this.tf("UI_TerrTip", "Territory {0} · {1} h · {2} clients", String(t + 1), h.toFixed(1), String(pts.length));
+                el.style.cssText = `padding:1px 5px;border-radius:9px;background:${this.hc.on ? this.hc.bg : "rgba(255,255,255,0.92)"};border:1.5px solid ${color};` +
+                    `color:${this.hc.on ? this.hc.fg : "#2F3B45"};font:600 10px 'Segoe UI',sans-serif;white-space:nowrap;transform:translate(-50%,-50%);display:inline-block;`;
+                const pos = L.latLng(la / pts.length, lo / pts.length);
+                L.marker(pos, { icon: L.divIcon({ html: el, className: "", iconSize: undefined }), keyboard: false, interactive: true }).addTo(capa);
+                this.etiquetas.push({ el, pos, h });
+            }
+        }
+        capa.addTo(this.map);
+        this.terrLayer = capa;
+        this.colocarEtiquetas();
+    }
+
+    /**
+     * Etiquetas de horas SIN SOLAPES (07-10-2026: con mas de 80 territorios se quitaban todas y
+     * areas como Madrid se quedaban sin horas). Se colocan de mayor a menor carga y se oculta la que
+     * pisaria a una ya puesta; al acercarse caben mas. Se rehace con cada zoom o desplazamiento.
+     */
+    private etiquetas: { el: HTMLElement; pos: L.LatLng; h: number }[] = [];
+    private colocarEtiquetas(): void {
+        if (!this.map || !this.etiquetas.length) return;
+        const puestas: { x0: number; y0: number; x1: number; y1: number }[] = [];
+        for (const e of this.etiquetas.slice().sort((a, b) => b.h - a.h)) {
+            const c = this.map.latLngToContainerPoint(e.pos);
+            const w = 8 + 6.2 * (e.el.textContent ?? "").length, hh = 16;
+            const r = { x0: c.x - w / 2 - 2, y0: c.y - hh / 2 - 2, x1: c.x + w / 2 + 2, y1: c.y + hh / 2 + 2 };
+            const choca = puestas.some(q => r.x0 < q.x1 && r.x1 > q.x0 && r.y0 < q.y1 && r.y1 > q.y0);
+            e.el.style.display = choca ? "none" : "inline-block";
+            if (!choca) puestas.push(r);
+        }
     }
     private lastZoomScale = 1;
     private applyZoomScale(): void {
@@ -1142,6 +1247,7 @@ export class Visual implements IVisual {
         // dejan el zoom inutilizable. En canvas es un solo elemento y se pinta en milisegundos.
         this.map = L.map(mapEl, { zoomControl: true, attributionControl: false, preferCanvas: true });
         const renderer = L.canvas({ padding: 0.3 });
+        this.canvasRenderer = renderer;
 
         // Contornos EMBEBIDOS (Natural Earth, dominio publico): paises del mundo y estados /
         // provincias de todos los paises (src/outlines.ts). Orientacion sin callejero y sin ninguna peticion de red: los datos
@@ -1162,10 +1268,7 @@ export class Visual implements IVisual {
         drawRings(OUTLINE_COUNTRIES, this.hc.on ? this.hc.fg : "#bab8b0", 0.9);
         const r = this.settings.mapSettings.markerSize;
         const reg = this.lastAreas;
-        // con areas, el color es el del area; el territorio se ve en el tooltip y el CSV
-        const baseColor = (p: ClusterPoint): string => this.waitingAreas ? "#6B7B8C" : p.clusterId < 0 ? "#f4f3ef" : reg ? clusterColor(reg.res.areaOfTerritory[p.clusterId]) : clusterColor(p.clusterId);
-        // alto contraste: puntos en primer plano; sin territorio, huecos (fondo con borde)
-        const colorOf = (p: ClusterPoint): string => this.hc.on ? (p.clusterId < 0 ? this.hc.bg : this.hc.fg) : baseColor(p);
+        // color de cada punto: fillOf (area; territorio si su area esta enfocada; alto contraste)
         if (this.proNote) {
             const pn = document.createElement("div");
             pn.style.cssText = "position:absolute;left:10px;bottom:10px;z-index:1001;max-width:60%;background:rgba(255,255,255,0.95);border:1px solid #D9D7CF;border-left:4px solid #C96442;border-radius:4px;padding:6px 9px;font:11px 'Segoe UI',sans-serif;color:#3B3A34;line-height:1.45;";
@@ -1190,14 +1293,16 @@ export class Visual implements IVisual {
         // Con foco, la zona pulsada lleva borde negro y algo mas de radio; las demas se atenuan
         // solo a medias, porque lo que se quiere comprobar es COMO ESTAN LAS DE AL LADO
         // (un territorio de 5 puntos solo se entiende viendo a sus vecinos).
+        this.prepararTerritorios();
         this.dots = []; this.lastZoomScale = 1;   // los puntos nuevos nacen a radio completo
         for (const p of points) {
             const st = this.dotStyle(p, r);
-            const mk = L.circleMarker([p.lat, p.lon], { renderer, fillColor: colorOf(p), interactive: false, ...st }).addTo(this.map);
+            const mk = L.circleMarker([p.lat, p.lon], { renderer, interactive: false, ...st }).addTo(this.map);
             this.dots.push({ mk, r: st.radius, p });
         }
         // al alejar el mapa, puntos y circulos de area encogen con el (zoomend salta tambien con fitBounds)
         this.map.on("zoomend", () => this.applyZoomScale());
+        this.map.on("zoomend moveend", () => this.colocarEtiquetas());
         this.map.on("click", () => { if (this.focus) this.toggleFocus(this.focus.kind, this.focus.id); });
 
         // UN tooltip para todos los puntos, construido con DOM (nada de HTML como cadena con datos
@@ -1333,6 +1438,7 @@ export class Visual implements IVisual {
         if (view) this.map.setView(view.center, view.zoom, { animate: false });
         else this.map.fitBounds(bounds, { padding: [24, 24] });
         this.applyZoomScale();   // si la vista no cambia de zoom, no salta zoomend
+        this.dibujarTerritorios();
     }
 
     /** Rejilla de busqueda del punto mas cercano al raton. Radio de captura: ~8 px al zoom actual. */

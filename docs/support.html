@@ -56,8 +56,12 @@ delegation — or drawn by the visual), then, inside each area, territories of a
 monthly hours, travel included. Everything is computed inside Power BI: no external service, no network
 requests, and the locations of your customers never leave your report. The parameters live in a bar
 inside the visual, so readers can try "what if a salesperson had 120 hours" in reading view.</p>
-<p>This page is the user guide. The algorithms, formulas, assumptions and references are in the
-<a href="methodology.html">Methodology</a>.</p>
+<div class="note"><strong>Territory design, not routing.</strong> The visual sizes the sales force and proposes
+territories. It does not plan routes, sequence visits or schedule anyone's day, and it does not read a road
+network: distances are straight lines times a road factor you set, and travel time is a planning estimate.
+Territories are drawn around clients, not along roads.</div>
+<p>This page is the user guide. How the figures are computed, the assumptions behind them and the references
+are in the <a href="methodology.html">Methodology</a>.</p>
 
 <h2>Quick start</h2>
 <ol class="steps">
@@ -81,7 +85,7 @@ inside the visual, so readers can try "what if a salesperson had 120 hours" in r
   <tr><td>Latitude, Longitude</td><td>Numeric, decimal degrees</td><td>Required. Rows with values out of range are ignored.</td></tr>
   <tr><td>Visits per month</td><td>Numeric</td><td>How often the point is visited; 0.5 means every two months.</td></tr>
   <tr><td>Minutes per visit</td><td>Numeric</td><td>Time on site per visit. Without Visits and Minutes every point counts as one hour of visits a month, and the split is by number of clients.</td></tr>
-  <tr><td>Postal code</td><td>Text or number</td><td>Optional. Bind it if you assign territories by postal code: each <strong>territory</strong> is then built from whole postal codes, so a code belongs to one salesperson (only codes with more work than about three quarters of a salesperson are shared). Automatic areas are also built from whole codes, and the code goes into the CSV export. With the Area field, areas follow your Area value, and territories still keep codes whole. A code wider than 25 km (a capital's code given to a whole province, say) is split into its towns. If the column is not geographic at all — fewer than half of the clients have their nearest client in the same code — it is ignored and the map says so.</td></tr>
+  <tr><td>Postal code</td><td>Text or number</td><td>Optional. Bind it if you assign territories by postal code: each <strong>territory</strong> is then made of whole postal codes, so a code belongs to one salesperson (only codes with more work than one salesperson are shared), and automatic areas are made of whole codes too. A code spread over a wide area (a capital's code given to a whole province, say) is split into its towns, and a column that is not geographic at all is ignored — the map says so. The code goes into the CSV export.</td></tr>
   <tr><td>Speed (km/h) <span class="pro">Pro</span></td><td>Numeric</td><td>Travel speed around this point — e.g. 25 in a city centre, 45 in its outskirts, 70 in the countryside. Overrides the bar's km/h for that point.</td></tr>
   <tr><td>Area <span class="pro">Pro</span></td><td>Any text</td><td>Your commercial areas. Each client stays in its own Area value; territories are built inside each area and never cross it. When bound, the bar's Areas number is ignored.</td></tr>
   <tr><td>Tooltips</td><td>Measures</td><td>Extra values on hover; report tooltip pages are supported.</td></tr>
@@ -137,14 +141,12 @@ can see what they add; in reading view the free result is shown. The exports sho
 Power BI can check licences, its own purchase link.</p>
 
 <h2>How it works, in short</h2>
-<p>Each client's workload is its visit time plus travel. Travel is estimated, not routed: each visit pays
-the hop to the next client (the mean distance to its three nearest clients) and its share of one trip a
-day from the territory's base and back, shared among the visits that fit in a day — the continuous
-approximation of routing used in logistics planning. Distances are straight lines times the road factor.
-Areas come from your field or from weighted k-means that respects land borders. Inside each area and each
-island, territories are built from the towns outward and balanced with a power diagram, with one
-salesperson's hours as a hard cap. Salespeople needed = workload ÷ hours per salesperson. The same data and
-parameters always give the same result. The full explanation, with formulas and references, is in the
+<p>Each client's workload is its visit time plus travel. Travel is <strong>estimated, not routed</strong>:
+each visit pays the hop to the next client and its share of a daily trip out to the territory and back —
+the continuous approximation used in logistics planning. Areas come from your field or are grouped
+automatically, respecting land borders. Inside each area and each island, territories are built from the
+towns outward, compact, with one salesperson's hours as a hard limit. Salespeople needed = workload ÷ hours
+per salesperson. The same data and parameters always give the same result. More in the
 <a href="methodology.html">Methodology</a>.</p>
 
 <h2>Frequently asked questions</h2>

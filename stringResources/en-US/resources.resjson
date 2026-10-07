@@ -80,6 +80,7 @@
   "UI_Unassigned": "Unassigned",
   "UI_UnassignedLong": "Unassigned: no territory with room within reach",
   "UI_PostalIgnored": "Postal code does not look geographic: clients that share a code are far apart. Areas were built client by client, and the area filter selects rows instead of postal codes.",
+  "UI_TerrTip": "Territory {0} · {1} h · {2} clients",
   "UI_WaitAreas": "Define the areas to size the sales force: bind a field to Area (province, region…) or type a number of Areas in the bar.",
   "UI_WaitAreasPro": "Type a number of Areas in the bar to size the sales force with automatic areas."
 }

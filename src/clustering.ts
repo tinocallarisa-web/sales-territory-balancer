@@ -2,7 +2,7 @@
 
 /**
  * Territorios de venta por carga de trabajo. Especificacion completa, con referencias a linea,
- * en notes/especificacion-algoritmo.md; explicacion para usuarios en docs/methodology.html.
+ * fuera de este repo (utillaje, privado); explicacion para usuarios en docs/methodology.html.
  *
  * Cada territorio es el mes de UN comercial: su carga (visitas + desplazamiento) no pasa de las
  * horas de la barra (tope duro). El numero de territorios no se pide: sale de la carga.

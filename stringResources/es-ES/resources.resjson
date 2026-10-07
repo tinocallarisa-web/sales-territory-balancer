@@ -80,6 +80,7 @@
   "UI_Unassigned": "Sin asignar",
   "UI_UnassignedLong": "Sin asignar: ningún territorio con hueco a su alcance",
   "UI_PostalIgnored": "El código postal no parece geográfico: los clientes con el mismo código están lejos entre sí. Las áreas se han construido cliente a cliente y el filtro de área selecciona filas en vez de códigos postales.",
+  "UI_TerrTip": "Territorio {0} · {1} h · {2} clientes",
   "UI_WaitAreas": "Define las áreas para dimensionar el equipo: pon un campo en Área (provincia, región…) o escribe un número de Áreas en la barra.",
   "UI_WaitAreasPro": "Escribe un número de Áreas en la barra para dimensionar el equipo con áreas automáticas."
 }
