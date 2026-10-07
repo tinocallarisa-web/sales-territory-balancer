@@ -104,7 +104,7 @@ rejected.
 |---|---|---|
 | Offer screenshot | `docs/infographic.html` -> `sales-territory-balancer-infographic.png` | **1366x768 is mandatory.** Open the page and press *Download PNG*. The page title reads FIT or OVERFLOW before you export. A copy is in `assets/infographic.png`. |
 | More screenshots | `assets/Screenshot_1.png` … `Screenshot_4.png` | 1366x768, checked 2026-10-07. |
-| Offer icon | 300x300 — **not found in `test_visuales/iconos/salida/`** | Has to be made and uploaded by hand: it does not travel inside the package. |
+| Offer icon | `assets/icon-300x300.png` (= `territory-300x300.png` from `test_visuales/iconos/salida/`, Nord system) | Uploaded by hand: it does not travel inside the package. |
 | Package icon | `assets/icon.png` | Embedded in the `.pbiviz`. |
 | Sample report | `Cluster weighted.pbix` (repo root) | Synthetic data. Add the *Tips & Hints* page from `docs/TIPS-AND-HINTS-PLAIN.txt`. |
 
