@@ -129,13 +129,20 @@ against the end of the Service ID). **Type them exactly.**
 
 | Plan ID | Visibility | Price | Purpose |
 |---|---|---|---|
-| `sales-territory-balancer-pro` | Public | your price | Sales Territory Balancer Pro |
+| `sales-territory-balancer-pro` | Public | 14.99 USD per user per month · 149 USD per user per year · 1-month free trial (chosen 2026-10-07; plan prices cannot be changed later) | Sales Territory Balancer Pro |
 | `partner` | Private | 0 | Partners (NextSteps): see `C:\tcviz\marketing\NextSteps\` |
 
-Plan description (public):
+Plan description (public; the field takes up to 3,000 characters, per Partner Center):
 
 ```
-Unlocks your own Area field, speed per point of sale, the CSV export of the assignment and the PDF export of the map.
+Sales Territory Balancer Pro adds what you need to work with your own sales organisation and to take the result out of Power BI:
+
+• Your own Area field — province, region, sales zone or delegation. Every client stays in its own area, and territories are built inside each one.
+• Speed per point of sale — slower in a city centre, faster in the countryside — for a more realistic travel time.
+• Export the assignment to CSV: customer, area, territory, monthly hours and postal code, ready for your CRM.
+• Export the map to a one-page PDF, as you see it, for the meeting.
+
+The free version already gives the complete result with automatic areas: salespeople needed, balanced territories, whole postal codes, filters and tooltips. Licence per user, managed by Microsoft. No network requests: your data never leaves the report.
 ```
 
 ## What to paste by hand in Partner Center
