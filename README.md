@@ -10,6 +10,7 @@ requests.
   https://tinocallarisa-web.github.io/sales-territory-balancer/methodology.html
 - **Privacy / Terms:** [privacy](https://tinocallarisa-web.github.io/sales-territory-balancer/privacy.html) ·
   [terms](https://tinocallarisa-web.github.io/sales-territory-balancer/terms.html)
+- **Video:** https://www.youtube.com/watch?v=BOZbV4abueg
 - **Changelog:** [CHANGELOG.md](CHANGELOG.md)
 
 The package GUID (`clusterWeighted7852F42A6D8A494CB286C44ACCF04FBB`) keeps the prototype's working

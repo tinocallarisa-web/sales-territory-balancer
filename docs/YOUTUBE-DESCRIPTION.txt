@@ -1,0 +1,101 @@
+SALES TERRITORY BALANCER v1.0.0.0 — YOUTUBE
+================================================================
+
+
+TÍTULO (el 1 es el que recomiendo)
+----------------------------------------------------------------
+1. How many salespeople do you need? Sales territories inside Power BI
+2. Design balanced sales territories in Power BI — no external software
+3. Sales force sizing and territory design in a Power BI visual
+4. Balanced sales territories from your Power BI data, in seconds
+
+Por qué el 1: abre con la pregunta que se hace un director comercial, lleva
+"sales territories" y "Power BI" (lo que la gente busca) y cabe en el listado
+(67 caracteres; el límite son 100). Sin número de versión: envejece.
+
+Versión en español, si el audio es en español:
+   ¿Cuántos comerciales necesitas? Territorios de venta dentro de Power BI
+
+
+DESCRIPCIÓN
+----------------------------------------------------------------
+Pégala tal cual. Los dos primeros párrafos son lo único que se ve sin
+desplegar, así que empiezan por el problema. Antes de publicar: pon el enlace
+de AppSource cuando la oferta exista, y ajusta los capítulos a tu vídeo.
+
+>>> EMPIEZA AQUÍ >>>
+
+One salesperson has 140 hours of work, another has 60, and nobody is sure how
+many people the team really needs. Redrawing sales territories usually means a
+spreadsheet, a consultant or a separate mapping tool where you upload your
+customer list.
+
+Sales Territory Balancer does it inside your Power BI report. Give it your
+points of sale — where they are and how much work each one takes — and it tells
+you how many salespeople each area needs and proposes a territory for each one,
+travel time included. Your customers' locations never leave the report.
+
+WHAT IT DOES
+• Salespeople needed per area — workload divided by one salesperson's monthly
+  hours, travel included, as a figure you can round your way (6.4, not "6 or 7")
+• Commercial areas — your own (province, region) or drawn automatically,
+  following land borders: never across a gulf or the sea
+• One territory per salesperson, compact, never above the hours you set
+• Click an area to see its territories, each with its outline and its hours
+• Islands and archipelagos as areas of their own
+• Territories made of whole postal codes, if you assign by postal code
+• Parameters in a bar inside the visual: hours per salesperson, speed, road
+  factor, number of areas — editable in reading view
+• Export the assignment to CSV and the map to PDF (Pro)
+
+WHAT IT IS NOT
+A territory design and sizing tool, not a routing tool. It does not plan routes
+or schedule visits, and it does not read a road network: distances are straight
+lines times a road factor you set, and travel time is a planning estimate.
+
+NO NETWORK ACCESS
+The visual makes no web requests and carries its own map outlines (Natural
+Earth). Nothing about your customers leaves Power BI.
+
+FREE AND PRO
+Free: everything with automatic areas — sizing, territories, outlines, filters,
+bookmarks, tooltips. Pro: your own Area field, speed per client, CSV and PDF
+exports. While you edit without a licence, the Pro fields work under a
+"Pro preview" watermark so you can see what they add.
+
+HOW IT WORKS
+The approach — workload sizing, the travel estimate and the references behind
+it — is explained here:
+https://tinocallarisa-web.github.io/sales-territory-balancer/methodology.html
+
+User guide:
+https://tinocallarisa-web.github.io/sales-territory-balancer/support.html
+
+Get it on AppSource: [ENLACE DE APPSOURCE — cuando la oferta esté publicada]
+
+CHAPTERS
+0:00 [ajustar] How many salespeople do you need?
+0:00 [ajustar] Your points of sale on the map
+0:00 [ajustar] Areas and salespeople needed
+0:00 [ajustar] Click an area: its territories
+0:00 [ajustar] What if a salesperson had 120 hours?
+0:00 [ajustar] Islands and the sea
+0:00 [ajustar] Filtering the rest of the report
+0:00 [ajustar] Export to PDF
+0:00 [ajustar] Territory design, not routing
+
+Support: support@tcviz.com
+TCViz — visuals for Power BI · https://tcviz.com
+
+#PowerBI #SalesTerritory #SalesOperations
+
+<<< TERMINA AQUÍ <<<
+
+
+Antes de publicar, comprueba:
+- Los capítulos: el primero tiene que ser 0:00 y hacen falta al menos tres,
+  con al menos 10 segundos cada uno, o YouTube no los muestra.
+- El enlace de AppSource: hasta que la oferta exista, borra esa línea.
+- Que todo lo que dice el vídeo está en esta lista (y al revés).
+- En el campo de vídeo de Partner Center, solo la URL completa:
+  https://www.youtube.com/watch?v=<id> (nunca youtu.be, /shorts ni /embed).

@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1366">
+<title>Sales Territory Balancer — Infographic</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<style>
+  :root {
+    --bg:#FAF9F5;  --bg2:#EDE9DE;  --bd:#F5F3ED;  --line:#DAD9D4;
+    --t1:#3D3929;  --t2:#535146;   --t3:#83827D;
+    --acc:#2B6CB0; --accd:#1F4E80; --acc2:#3E9C5B; --acc2l:#D9EFE0;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #888; font-family: 'Segoe UI', system-ui, sans-serif; }
+
+  #dl-btn {
+    position: fixed; top: 12px; left: 12px; z-index: 999;
+    background: var(--acc); color: #fff; border: none; border-radius: 6px;
+    padding: 8px 16px; font: 700 13px 'Segoe UI', sans-serif; cursor: pointer;
+  }
+  #dl-btn:hover { background: var(--accd); }
+  #fit-check { position: fixed; top: 12px; right: 12px; z-index: 10000; background: #B00020; color: #fff; font: 700 13px 'Segoe UI', sans-serif; padding: 6px 12px; border-radius: 6px; }
+
+  /* 1366x768 exactos: la medida que pide Microsoft. */
+  #infographic {
+    width: 1366px; height: 768px; overflow: hidden;
+    background: var(--bg); color: var(--t1);
+    display: flex; flex-direction: column;
+    padding: 12px 36px 8px;
+  }
+
+  /* ── HEADER ── */
+  .header { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 24px; margin-bottom: 8px; }
+  .header-center h1 { font-size: 28px; font-weight: 700; color: var(--t1); line-height: 1.1; }
+  .header-center h1 span { color: var(--acc); }
+  .header-center p { font-size: 13px; color: var(--t3); margin-top: 4px; line-height: 1.4; }
+  /* Captura real del visual incrustada en Base64 (html2canvas + CORS). */
+  .header-chart svg, .header-chart img { display: block; }
+
+  /* ── USE CASES STRIP ── */
+  .use-cases { display: flex; align-items: center; gap: 16px; background: var(--bd); border: 1px solid var(--line); border-radius: 10px; padding: 6px 20px; margin-bottom: 8px; }
+  .use-cases-label { writing-mode: vertical-rl; transform: rotate(180deg); font-size: 10px; font-weight: 700; letter-spacing: 2px; color: var(--t3); white-space: nowrap; text-transform: uppercase; }
+  .use-cases-icons { display: flex; gap: 20px; flex: 1; align-items: center; }
+  .use-case-item { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+  .use-case-item i { font-size: 18px; color: var(--acc); }
+  .use-case-item span { font-size: 11px; color: var(--t2); white-space: nowrap; }
+  .use-case-callout { background: var(--acc); color: #fff; border-radius: 20px; padding: 6px 14px; font-size: 12px; font-weight: 700; max-width: 260px; line-height: 1.3; text-align: center; }
+
+  /* ── BODY ── */
+  .body { display: grid; grid-template-columns: 1fr 190px 1fr; gap: 18px; margin-bottom: 8px; }
+  .body-left, .body-right { border-radius: 10px; padding: 8px 18px; display: flex; flex-direction: column; gap: 4px; background: #fff; }
+  .body-left { border: 2px solid var(--acc); }
+  .body-right { border: 2px solid var(--acc2); }
+
+  .section-title { font-size: 13px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 1px; }
+  .body-left .section-title { color: var(--acc); }
+  .body-right .section-title { color: var(--acc2); }
+
+  .step-card { display: flex; gap: 9px; align-items: flex-start; }
+  .step-num { width: 20px; height: 20px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; flex-shrink: 0; margin-top: 1px; }
+  .step-num.orange { background: var(--acc); color: #fff; }
+  .step-num.purple { background: var(--acc2); color: #fff; }
+  .step-card-text strong { display: block; font-size: 12px; color: var(--t1); font-weight: 600; line-height: 1.25; }
+  .step-card-text p { font-size: 11px; color: var(--t2); margin-top: 0; line-height: 1.3; }
+
+  /* Center column */
+  .body-center { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; }
+  .pro-badge { width: 80px; height: 80px; border-radius: 50%; background: linear-gradient(135deg, var(--acc), var(--acc2)); display: flex; flex-direction: column; align-items: center; justify-content: center; color: #fff; font-weight: 700; font-size: 20px; line-height: 1; }
+  .pro-badge span { font-size: 9px; font-weight: 500; letter-spacing: 1px; }
+  .stat-pill { background: var(--bd); border: 1px solid var(--line); border-radius: 6px; padding: 4px 8px; width: 100%; text-align: center; }
+  .stat-pill .stat-val { font-size: 16px; font-weight: 700; color: var(--acc); line-height: 1.1; }
+  .stat-pill .stat-label { font-size: 9px; color: var(--t3); text-transform: uppercase; letter-spacing: .5px; }
+
+  /* ── WORKFLOW ── */
+  .workflow { display: flex; align-items: center; gap: 8px; background: var(--bd); border: 1px solid var(--line); border-radius: 10px; padding: 6px 20px; }
+  .workflow-step { display: flex; flex-direction: column; align-items: center; gap: 2px; flex: 1; }
+  .workflow-step i { font-size: 18px; color: var(--acc); }
+  .workflow-step span { font-size: 11px; color: var(--t2); text-align: center; }
+  .workflow-arrow { color: var(--t3); font-size: 16px; }
+  .workflow-tagline { font-style: italic; color: var(--t3); font-size: 11px; text-align: center; margin: 3px 0 8px; }
+
+  /* ── BOTTOM GRID ── */
+  .bottom-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 18px; flex: 1; }
+  .bottom-card { background: var(--bd); border: 1px solid var(--line); border-radius: 10px; padding: 7px 14px; }
+  .bottom-card-title { font-size: 13px; font-weight: 700; color: var(--acc); margin-bottom: 4px; }
+  .benefit-item { display: flex; gap: 7px; align-items: flex-start; margin-bottom: 3px; }
+  .benefit-item i { font-size: 15px; color: var(--acc); flex-shrink: 0; margin-top: 1px; }
+  .benefit-item div strong { display: block; font-size: 11.5px; color: var(--t1); font-weight: 600; }
+  .benefit-item div p { font-size: 10.5px; color: var(--t2); line-height: 1.3; }
+  .tip-item { display: flex; gap: 6px; align-items: flex-start; margin-bottom: 2px; font-size: 10.5px; color: var(--t2); line-height: 1.3; }
+  .tip-check { color: var(--acc2); font-weight: 700; flex-shrink: 0; }
+
+  .format-section { margin-bottom: 3px; }
+  .format-section-name { font-size: 11px; font-weight: 700; color: var(--t1); margin-bottom: 1px; }
+  .format-tag { display: inline-block; background: #fff; border: 1px solid var(--line); border-radius: 4px; font-size: 10px; color: var(--t2); padding: 0 5px; margin: 1px 2px 1px 0; }
+  .format-tag.pro { background: var(--acc2l); border-color: var(--acc2); color: #2A6B3E; }
+
+  /* ── FOOTER ── */
+  .footer { display: flex; align-items: center; justify-content: space-between; margin-top: 6px; padding-top: 5px; border-top: 1px solid var(--line); }
+  .footer-left { display: flex; align-items: center; gap: 10px; }
+  .footer-visual-name { font-size: 12px; font-weight: 600; color: var(--t3); }
+  .footer-links { display: flex; gap: 12px; align-items: center; }
+  .footer-links a { font-size: 12px; color: var(--t3); text-decoration: none; }
+  .footer-links a:hover { color: var(--acc); }
+  .footer-sep { color: var(--line); }
+
+  @media print {
+    @page { size: A4 landscape; margin: 0; }
+    body { background: none; }
+    #dl-btn, #fit-check { display: none; }
+    #infographic { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+  }
+
+  /* compactado para 1366x768 */
+  .header-chart img { width: 85px; height: 80px; }
+  .use-case-item { flex-direction: row; gap: 5px; }
+  .use-case-item i { font-size: 16px; }
+  .body-center { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; align-content: center; justify-items: center; }
+  .body-center .pro-badge { grid-column: 1 / -1; }
+  .stat-pill { padding: 3px 4px; }
+  .stat-pill .stat-label { font-size: 8.5px; line-height: 1.15; }
+  .workflow-step { flex-direction: row; gap: 6px; justify-content: center; }
+  .format-section-name { display: inline-block; margin-right: 4px; }
+  .format-section { margin-bottom: 2px; line-height: 1.2; }
+  .tip-item { margin-bottom: 1px; }
+  .benefit-item { margin-bottom: 2px; }
+  /* STB: tarjetas inferiores con aire de sobra */
+  .use-case-callout { max-width: 380px; }
+  .bottom-card { padding: 10px 16px; }
+  .bottom-card-title { font-size: 14px; margin-bottom: 7px; }
+  .benefit-item { margin-bottom: 7px; }
+  .benefit-item i { font-size: 17px; }
+  .benefit-item div strong { font-size: 12.5px; }
+  .benefit-item div p { font-size: 11.5px; }
+  .tip-item { font-size: 12px; margin-bottom: 7px; line-height: 1.35; }
+  .format-section { margin-bottom: 6px; }
+  .format-section-name { font-size: 12px; }
+  .format-tag { font-size: 11px; }
+</style>
+</head>
+<body>
+
+<button id="dl-btn" onclick="downloadPNG()">⬇ Download PNG</button>
+
+<div id="infographic">
+
+  <!-- ── HEADER ── -->
+  <div class="header">
+    <div>
+      <!-- TCViz Logo -->
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 828 362" width="160" height="70">
+        <defs>
+          <linearGradient id="g" x1="0" y1="1" x2="1" y2="0">
+            <stop offset="0" stop-color="#1F4E80"/>
+            <stop offset="0.55" stop-color="#2B6CB0"/>
+            <stop offset="1" stop-color="#3E9C5B"/>
+          </linearGradient>
+        </defs>
+        <g transform="translate(40,46)">
+          <rect x="22" y="20" width="150" height="150" rx="30" fill="none" stroke="url(#g)" stroke-width="11"/>
+          <g fill="url(#g)">
+            <rect x="42" y="110" width="20" height="58" rx="5"/>
+            <rect x="70" y="86" width="20" height="82" rx="5"/>
+            <rect x="98" y="62" width="20" height="106" rx="5"/>
+            <rect x="126" y="38" width="20" height="130" rx="5"/>
+          </g>
+        </g>
+        <text x="258" y="246" font-family="Poppins,sans-serif" font-weight="700" font-size="196" letter-spacing="-4">
+          <tspan fill="url(#g)">tc</tspan><tspan fill="#3D3929">viz</tspan>
+        </text>
+        <text x="264" y="306" font-family="Poppins,sans-serif" font-weight="500" font-size="31" letter-spacing="6.5" fill="#83827D">VISUALS TO POWER BI</text>
+      </svg>
+    </div>
+
+    <div class="header-center">
+      <h1>Sales Territory Balancer — <span>How many salespeople do you need?</span></h1>
+      <p>Points of sale with coordinates and workload become the salespeople each area needs<br>
+      and one compact territory per salesperson — inside Power BI, with no network requests.</p>
+    </div>
+
+    <div class="header-chart">
+      <!-- Illustration: three territories, each with its hours -->
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 100" width="120" height="100" role="img" aria-label="Three territories drawn around clients, each labelled with its hours">
+        <rect x="0" y="0" width="120" height="100" rx="8" fill="#EDE9DE"/>
+        <polygon points="8,12 52,8 56,46 14,52" fill="#2B6CB0" fill-opacity=".18" stroke="#2B6CB0" stroke-width="1.5"/>
+        <polygon points="58,8 112,14 108,50 60,46" fill="#3E9C5B" fill-opacity=".18" stroke="#3E9C5B" stroke-width="1.5"/>
+        <polygon points="16,56 58,50 106,54 98,92 22,92" fill="#1F4E80" fill-opacity=".14" stroke="#1F4E80" stroke-width="1.5"/>
+        <g fill="#2B6CB0"><circle cx="18" cy="20" r="2"/><circle cx="30" cy="16" r="2"/><circle cx="44" cy="18" r="2"/><circle cx="22" cy="44" r="2"/><circle cx="46" cy="42" r="2"/></g>
+        <g fill="#3E9C5B"><circle cx="68" cy="18" r="2"/><circle cx="84" cy="18" r="2"/><circle cx="100" cy="22" r="2"/><circle cx="70" cy="42" r="2"/><circle cx="100" cy="44" r="2"/></g>
+        <g fill="#1F4E80"><circle cx="30" cy="64" r="2"/><circle cx="40" cy="84" r="2"/><circle cx="90" cy="62" r="2"/><circle cx="88" cy="84" r="2"/><circle cx="64" cy="88" r="2"/></g>
+        <g font-family="Segoe UI,sans-serif" font-size="9" font-weight="700" text-anchor="middle">
+          <rect x="20" y="25" width="28" height="12" rx="6" fill="#fff"/><text x="34" y="34" fill="#2B6CB0">132 h</text>
+          <rect x="71" y="27" width="28" height="12" rx="6" fill="#fff"/><text x="85" y="36" fill="#3E9C5B">138 h</text>
+          <rect x="47" y="66" width="28" height="12" rx="6" fill="#fff"/><text x="61" y="75" fill="#1F4E80">127 h</text>
+        </g>
+      </svg>
+    </div>
+  </div>
+
+  <!-- ── USE CASES STRIP ── -->
+  <div class="use-cases">
+    <span class="use-cases-label">Use Cases</span>
+    <div class="use-cases-icons">
+      <div class="use-case-item"><i class="ti ti-briefcase"></i><span>Field sales</span></div>
+      <div class="use-case-item"><i class="ti ti-truck-delivery"></i><span>Distribution</span></div>
+      <div class="use-case-item"><i class="ti ti-pill"></i><span>Pharma reps</span></div>
+      <div class="use-case-item"><i class="ti ti-shopping-cart"></i><span>FMCG</span></div>
+      <div class="use-case-item"><i class="ti ti-building-store"></i><span>Retail</span></div>
+      <div class="use-case-item"><i class="ti ti-tool"></i><span>Field service</span></div>
+      <div class="use-case-item"><i class="ti ti-chart-dots-3"></i><span>Sales ops</span></div>
+    </div>
+    <div class="use-case-callout">
+      One salesperson at 140 h, another at 60 h? Rebalance from your own data.
+    </div>
+  </div>
+
+  <!-- ── BODY ── -->
+  <div class="body">
+
+    <!-- Left: Free -->
+    <div class="body-left">
+      <div class="section-title">Getting Started (Free)</div>
+
+      <div class="step-card">
+        <div class="step-num orange">1</div>
+        <div class="step-card-text">
+          <strong>Add the visual</strong>
+          <p>Get Sales Territory Balancer from AppSource, or import the file via More visuals.</p>
+        </div>
+      </div>
+
+      <div class="step-card">
+        <div class="step-num orange">2</div>
+        <div class="step-card-text">
+          <strong>Bind your points of sale</strong>
+          <p>Customer ID, Latitude, Longitude, Visits per month and Minutes per visit.</p>
+        </div>
+      </div>
+
+      <div class="step-card">
+        <div class="step-num orange">3</div>
+        <div class="step-card-text">
+          <strong>Set hours, speed and road factor</strong>
+          <p>In the bar inside the visual — editable in reading view, too.</p>
+        </div>
+      </div>
+
+      <div class="step-card">
+        <div class="step-num orange">4</div>
+        <div class="step-card-text">
+          <strong>Choose the number of areas</strong>
+          <p>Drawn automatically along land borders; islands get areas of their own.</p>
+        </div>
+      </div>
+
+      <div class="step-card">
+        <div class="step-num orange">5</div>
+        <div class="step-card-text">
+          <strong>Read the salespeople needed</strong>
+          <p>Workload ÷ hours per salesperson, per area — 6.4, not "6 or 7".</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Center: Pro badge + stat pills -->
+    <div class="body-center">
+      <div class="pro-badge">PRO<span>PLAN</span></div>
+
+      <div class="stat-pill">
+        <div class="stat-val">0</div>
+        <div class="stat-label">Network requests</div>
+      </div>
+      <div class="stat-pill">
+        <div class="stat-val">4,594</div>
+        <div class="stat-label">Regions outlined, worldwide</div>
+      </div>
+      <div class="stat-pill">
+        <div class="stat-val">140 h</div>
+        <div class="stat-label">Default hours per salesperson</div>
+      </div>
+      <div class="stat-pill">
+        <div class="stat-val">1</div>
+        <div class="stat-label">Territory per salesperson</div>
+      </div>
+    </div>
+
+    <!-- Right: Pro -->
+    <div class="body-right">
+      <div class="section-title">Pro Features</div>
+
+      <div class="step-card">
+        <div class="step-num purple">6</div>
+        <div class="step-card-text">
+          <strong>Your own areas</strong>
+          <p>Bind an Area field — province, region, sales zone — and every client stays in its area.</p>
+        </div>
+      </div>
+
+      <div class="step-card">
+        <div class="step-num purple">7</div>
+        <div class="step-card-text">
+          <strong>Speed per client</strong>
+          <p>Slower in the city, faster on the open road: one speed for each point of sale.</p>
+        </div>
+      </div>
+
+      <div class="step-card">
+        <div class="step-num purple">8</div>
+        <div class="step-card-text">
+          <strong>Export the assignment to CSV</strong>
+          <p>Each client with its area and territory, ready for your CRM.</p>
+        </div>
+      </div>
+
+      <div class="step-card">
+        <div class="step-num purple">9</div>
+        <div class="step-card-text">
+          <strong>Export the map to PDF</strong>
+          <p>One page with the map as you see it, for the meeting.</p>
+        </div>
+      </div>
+
+      <div class="step-card">
+        <div class="step-num purple">10</div>
+        <div class="step-card-text">
+          <strong>Pro preview</strong>
+          <p>Without a licence, Pro fields work under a watermark so you see what they add.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── WORKFLOW ── -->
+  <div>
+    <div class="workflow">
+      <div class="workflow-step"><i class="ti ti-map-pin"></i><span>Points of sale</span></div>
+      <span class="workflow-arrow">›</span>
+      <div class="workflow-step"><i class="ti ti-clock-hour-4"></i><span>Workload</span></div>
+      <span class="workflow-arrow">›</span>
+      <div class="workflow-step"><i class="ti ti-map-2"></i><span>Areas</span></div>
+      <span class="workflow-arrow">›</span>
+      <div class="workflow-step"><i class="ti ti-users-group"></i><span>Salespeople</span></div>
+      <span class="workflow-arrow">›</span>
+      <div class="workflow-step"><i class="ti ti-polygon"></i><span>Territories</span></div>
+      <span class="workflow-arrow">›</span>
+      <div class="workflow-step"><i class="ti ti-filter"></i><span>Filter report</span></div>
+      <span class="workflow-arrow">›</span>
+      <div class="workflow-step"><i class="ti ti-file-export"></i><span>Export</span></div>
+    </div>
+    <div class="workflow-tagline">Territory design and sales force sizing — not routing.</div>
+  </div>
+
+  <!-- ── BOTTOM GRID ── -->
+  <div class="bottom-grid">
+
+    <!-- Key Benefits -->
+    <div class="bottom-card">
+      <div class="bottom-card-title">Key Benefits</div>
+
+      <div class="benefit-item">
+        <i class="ti ti-scale"></i>
+        <div>
+          <strong>Balanced, with a hard limit</strong>
+          <p>No territory above the hours you set; travel time included.</p>
+        </div>
+      </div>
+      <div class="benefit-item">
+        <i class="ti ti-ripple"></i>
+        <div>
+          <strong>Land borders and islands</strong>
+          <p>Areas never cross a gulf or the sea.</p>
+        </div>
+      </div>
+      <div class="benefit-item">
+        <i class="ti ti-mailbox"></i>
+        <div>
+          <strong>Whole postal codes</strong>
+          <p>Bind the postal code and each code goes to one salesperson.</p>
+        </div>
+      </div>
+      <div class="benefit-item">
+        <i class="ti ti-lock"></i>
+        <div>
+          <strong>Private by design</strong>
+          <p>Outlines travel inside the visual; customer locations stay in the report.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tips -->
+    <div class="bottom-card">
+      <div class="bottom-card-title">Tips &amp; Best Practices</div>
+
+      <div class="tip-item"><span class="tip-check">✓</span><span>Set the <strong>road factor</strong> for your country: distances are straight lines times it.</span></div>
+      <div class="tip-item"><span class="tip-check">✓</span><span>Assign by postal code? Bind <strong>Postal code</strong> so codes are not split.</span></div>
+      <div class="tip-item"><span class="tip-check">✓</span><span><strong>Click an area</strong> to see its territories and filter the rest of the report.</span></div>
+      <div class="tip-item"><span class="tip-check">✓</span><span>Try "what if 120 h?" in the bar: same data, same result, every time.</span></div>
+      <div class="tip-item"><span class="tip-check">✓</span><span>Travel time is a planning estimate — it does not plan routes or visits.</span></div>
+    </div>
+
+    <!-- Format Pane Reference -->
+    <div class="bottom-card">
+      <div class="bottom-card-title">Format Pane — Quick Reference</div>
+
+      <div class="format-section">
+        <div class="format-section-name">Territories</div>
+        <span class="format-tag">Hours / salesperson</span>
+        <span class="format-tag">Average speed</span>
+        <span class="format-tag">Road factor</span>
+        <span class="format-tag">Working days</span>
+        <span class="format-tag">Outlier distance</span>
+        <span class="format-tag">Areas (automatic)</span>
+      </div>
+      <div class="format-section">
+        <div class="format-section-name">Area badges</div>
+        <span class="format-tag">Show</span>
+        <span class="format-tag">Shape</span>
+        <span class="format-tag">Font</span>
+        <span class="format-tag">Colors</span>
+        <span class="format-tag">Border</span>
+      </div>
+      <div class="format-section">
+        <div class="format-section-name">Map Settings</div>
+        <span class="format-tag">Marker size</span>
+      </div>
+      <div class="format-section">
+        <div class="format-section-name">Data fields <span style="color:#3E9C5B;font-weight:700">✦ Pro</span></div>
+        <span class="format-tag pro">Area ✦</span>
+        <span class="format-tag pro">Speed (km/h) ✦</span>
+      </div>
+      <div class="format-section">
+        <div class="format-section-name">In the visual <span style="color:#3E9C5B;font-weight:700">✦ Pro</span></div>
+        <span class="format-tag pro">CSV export ✦</span>
+        <span class="format-tag pro">PDF export ✦</span>
+      </div>
+      <div style="margin-top:4px;font-size:10px;color:#83827D;">✦ Requires Pro license</div>
+    </div>
+
+  </div>
+
+  <!-- ── FOOTER ── -->
+  <div class="footer">
+    <div class="footer-left">
+      <!-- TCViz Logo small -->
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 828 362" width="70" height="30">
+        <defs>
+          <linearGradient id="gf" x1="0" y1="1" x2="1" y2="0">
+            <stop offset="0" stop-color="#1F4E80"/>
+            <stop offset="0.55" stop-color="#2B6CB0"/>
+            <stop offset="1" stop-color="#3E9C5B"/>
+          </linearGradient>
+        </defs>
+        <g transform="translate(40,46)">
+          <rect x="22" y="20" width="150" height="150" rx="30" fill="none" stroke="url(#gf)" stroke-width="11"/>
+          <g fill="url(#gf)">
+            <rect x="42" y="110" width="20" height="58" rx="5"/>
+            <rect x="70" y="86" width="20" height="82" rx="5"/>
+            <rect x="98" y="62" width="20" height="106" rx="5"/>
+            <rect x="126" y="38" width="20" height="130" rx="5"/>
+          </g>
+        </g>
+        <text x="258" y="246" font-family="Poppins,sans-serif" font-weight="700" font-size="196" letter-spacing="-4">
+          <tspan fill="url(#gf)">tc</tspan><tspan fill="#3D3929">viz</tspan>
+        </text>
+        <text x="264" y="306" font-family="Poppins,sans-serif" font-weight="500" font-size="31" letter-spacing="6.5" fill="#83827D">VISUALS TO POWER BI</text>
+      </svg>
+      <span class="footer-visual-name">Sales Territory Balancer</span>
+    </div>
+    <div class="footer-links">
+      <a href="https://tinocallarisa-web.github.io/sales-territory-balancer/support.html">Support</a>
+      <span class="footer-sep">·</span>
+      <a href="https://tinocallarisa-web.github.io/sales-territory-balancer/privacy.html">Privacy Policy</a>
+      <span class="footer-sep">·</span>
+      <a href="https://tinocallarisa-web.github.io/sales-territory-balancer/terms.html">Terms of Use</a>
+      <span class="footer-sep">·</span>
+      <a href="https://www.youtube.com/watch?v=BOZbV4abueg">Video</a>
+    </div>
+  </div>
+
+</div><!-- /infographic -->
+
+<script>
+async function downloadPNG() {
+  const btn = document.getElementById('dl-btn');
+  btn.textContent = '⏳ Generating…';
+  btn.disabled = true;
+  try {
+    const canvas = await html2canvas(document.getElementById('infographic'), {
+      width: 1366, height: 768, scale: 1,
+      useCORS: true, backgroundColor: '#FAF9F5'
+    });
+    const link = document.createElement('a');
+    link.download = 'sales-territory-balancer-infographic.png';
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+  } finally {
+    btn.textContent = '⬇ Download PNG';
+    btn.disabled = false;
+  }
+}
+</script>
+
+<div id="fit-check" hidden></div>
+<script>
+(function () {
+  function check() {
+    var el = document.getElementById('infographic');
+    var h = el.scrollHeight, b = document.getElementById('fit-check');
+    if (h > 768) { b.textContent = 'OVERFLOW: ' + (h - 768) + 'px'; b.hidden = false; document.title = 'OVERFLOW'; }
+    else { b.hidden = true; document.title = 'FIT'; }
+  }
+  window.addEventListener('load', function () {
+    var ready = (document.fonts && document.fonts.ready) ? document.fonts.ready : Promise.resolve();
+    ready.then(function () { setTimeout(check, 100); });
+  });
+})();
+</script>
+</body>
+</html>

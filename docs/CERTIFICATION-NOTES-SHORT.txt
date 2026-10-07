@@ -1,7 +1,7 @@
 Sales Territory Balancer 1.0.0.0 - GUID clusterWeighted7852F42A6D8A494CB286C44ACCF04FBB
 Repo, branch certification: github.com/tinocallarisa-web/sales-territory-balancer
 Docs: tinocallarisa-web.github.io/sales-territory-balancer (support, methodology)
-Video: VIDEO_URL_PENDING
+Video: youtube.com/watch?v=BOZbV4abueg
 
 PLEASE READ FIRST - PRO PREVIEW
 Without a licence, IN EDIT MODE ONLY, the Pro fields Area and Speed work under a
@@ -40,4 +40,4 @@ RENDERING EVENTS: one renderingStarted and one renderingFinished/Failed per
 update(); balancing runs async after it; the licence repaint emits none.
 
 Algorithm: docs/methodology.html. Reads and draws only.
-Toolchain: tools 7.2.1, API 5.11.1, ESLint 9 + powerbi plugin 0 errors, audit 0.
+Tools 7.2.1, API 5.11.1, ESLint 0 errors. npm audit: only braces (no fix; build-time).
