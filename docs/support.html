@@ -4,26 +4,27 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Support &amp; Documentation — Sales Territory Balancer by TCViz</title>
+<meta name="description" content="User guide for Sales Territory Balancer, a Power BI custom visual that sizes the sales force and designs balanced sales territories inside Power BI.">
 <style>
-  :root{--bg:#FAF9F5;--bg2:#EDE9DE;--line:#DAD9D4;
-        --t1:#3D3929;--t2:#535146;--t3:#83827D;--acc:#C96442;--accd:#B05730;
-        --acc2:#9C87F5;--acc2l:#DBD3F0}
+  :root{--bg:#FAF9F5;--bg2:#EEF2F6;--line:#DAD9D4;
+        --t1:#3D3929;--t2:#535146;--t3:#83827D;
+        --acc:#2B6CB0;--accd:#1F4E80;--acc2:#3E9C5B}
   *{box-sizing:border-box}
   body{margin:0;background:var(--bg);color:var(--t1);
        font-family:'Segoe UI',system-ui,-apple-system,sans-serif;line-height:1.65}
   .wrap{max-width:900px;margin:0 auto;padding:48px 24px 80px}
-  header{border-bottom:3px solid var(--acc);padding-bottom:20px;margin-bottom:36px}
+  header{border-bottom:3px solid transparent;border-image:linear-gradient(90deg,#1F4E80,#2B6CB0,#3E9C5B) 1;
+         padding-bottom:20px;margin-bottom:32px}
   h1{margin:0 0 6px;font-size:32px;letter-spacing:-.5px}
-  h2{margin:40px 0 12px;font-size:22px;color:var(--accd)}
-  h3{margin:26px 0 8px;font-size:16px}
+  h2{margin:42px 0 12px;font-size:22px;color:var(--accd)}
+  h3{margin:24px 0 8px;font-size:16px}
   .sub{color:var(--t3);font-size:14px;margin:0}
-  .verpill{display:inline-block;margin:10px 0 0;padding:3px 10px;border-radius:20px;background:var(--bg2);font-size:12px;color:var(--t2)}
+  .pill{display:inline-block;margin:10px 6px 0 0;padding:3px 10px;border-radius:20px;background:var(--bg2);font-size:12px;color:var(--t2)}
   table{width:100%;border-collapse:collapse;margin:16px 0;font-size:14px}
   th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top}
   th{background:var(--bg2);font-weight:600}
   code{background:var(--bg2);padding:2px 6px;border-radius:4px;font-size:13px}
-  .note{background:var(--bg2);border-left:4px solid var(--acc);padding:16px 20px;
-        border-radius:0 8px 8px 0;margin:20px 0}
+  .note{background:var(--bg2);border-left:4px solid var(--acc2);padding:16px 20px;border-radius:0 8px 8px 0;margin:20px 0}
   .steps{counter-reset:s;list-style:none;padding:0}
   .steps li{counter-increment:s;position:relative;padding:0 0 14px 40px;margin:0}
   .steps li::before{content:counter(s);position:absolute;left:0;top:0;width:26px;height:26px;
@@ -31,10 +32,10 @@
     display:flex;align-items:center;justify-content:center}
   details{background:#fff;border:1px solid var(--line);border-radius:8px;padding:12px 16px;margin:10px 0}
   summary{cursor:pointer;font-weight:600}
-  ul{padding-left:22px}li{margin:6px 0}
+  ul{padding-left:22px} li{margin:6px 0}
   a{color:var(--accd)}
-  footer{margin-top:56px;padding-top:20px;border-top:1px solid var(--line);
-         color:var(--t3);font-size:13px;display:flex;gap:18px;flex-wrap:wrap}
+  .pro{display:inline-block;padding:0 7px;border-radius:10px;background:#E3F1E8;color:#2B6E42;font-size:12px;font-weight:600}
+  footer{margin-top:56px;padding-top:20px;border-top:1px solid var(--line);color:var(--t3);font-size:13px;display:flex;gap:18px;flex-wrap:wrap}
 </style>
 </head>
 <body>
@@ -42,166 +43,168 @@
 
 <header>
   <h1>Support &amp; Documentation</h1>
-  <p class="sub">Sales Territory Balancer — a Power BI custom visual by TCViz · Last updated: 29 September 2026</p>
-  <span class="verpill">Version 1.0.0.0 · <a href="changelog.html">See what's new</a></span>
+  <p class="sub">Sales Territory Balancer — a Power BI custom visual by TCViz · Last updated: 7 October 2026</p>
+  <span class="pill">Version 1.0.0.0</span>
+  <span class="pill"><a href="methodology.html">Methodology: how every number is computed</a></span>
+  <span class="pill"><a href="changelog.html">What's new</a></span>
 </header>
 
-<p>Give it your points of sale — where they are and how much work each one takes — and it returns
-compact territories of equal workload, travel time included, and tells you how many salespeople you
-need. Two levels: first <strong>commercial areas</strong> that make geographic sense (your own —
-province, region — or drawn by the visual), then, inside each area, one territory per salesperson.
-Everything is computed inside Power BI: no external service, no network requests, and the
-locations of your customers never leave your report. The parameters live in a bar inside the visual,
-so the people reading the report can try "what if a salesperson had 120 hours" without edit rights.
-Everything below is documented against version 1.0.0.0 of the visual.</p>
+<p>Give it your points of sale — where they are and how much work each one takes — and it tells you
+<strong>how many salespeople you need</strong> and proposes <strong>a territory for each one</strong>.
+It works on two levels: first <strong>commercial areas</strong> (your own — province, region,
+delegation — or drawn by the visual), then, inside each area, territories of at most one salesperson's
+monthly hours, travel included. Everything is computed inside Power BI: no external service, no network
+requests, and the locations of your customers never leave your report. The parameters live in a bar
+inside the visual, so readers can try "what if a salesperson had 120 hours" in reading view.</p>
+<p>This page is the user guide. The algorithms, formulas, assumptions and references are in the
+<a href="methodology.html">Methodology</a>.</p>
 
 <h2>Quick start</h2>
 <ol class="steps">
   <li>Drop the visual on the canvas.</li>
   <li>Drag your point-of-sale identifier into <strong>Customer ID</strong>, and its coordinates into
-      <strong>Latitude</strong> and <strong>Longitude</strong>. Customer ID is required: without it,
-      Power BI would aggregate every latitude into one point.</li>
-  <li>Give each point a workload — <strong>Visits per month</strong> plus <strong>Minutes per visit</strong>
-      (the visual adds travel time per visit), or <strong>Hours per month</strong> if you already have the
-      workload in hours.</li>
-  <li>Optionally drag your commercial area — province, sales region, whatever you manage by — into
-      <strong>Area</strong>. Or type a number in <strong>Areas</strong> in the bar and the visual draws
-      geographic areas for you. Leave both empty for a single plan.</li>
-  <li>In the bar above the map, set <strong>Hours / salesperson / month</strong> — field hours available
-      to one salesperson — and the <strong>tolerance</strong>. The territories appear, and the panel says
-      how many salespeople each area needs.</li>
+      <strong>Latitude</strong> and <strong>Longitude</strong>. Use one row per point of sale: without
+      Customer ID, Power BI aggregates all the coordinates into a single point.</li>
+  <li>Give each point a workload: <strong>Visits per month</strong> and <strong>Minutes per visit</strong>.
+      The visual adds the travel time.</li>
+  <li>Define the areas: drag your commercial area into <strong>Area</strong> <span class="pro">Pro</span>,
+      or type a number in <strong>Areas</strong> in the bar and the visual draws them. Until there are
+      areas the map shows your points and asks for them.</li>
+  <li>Set <strong>Hours / salesperson / month</strong> in the bar. Each area's badge and the legend show the
+      salespeople it needs; hover any point for its territory.</li>
 </ol>
 
 <h2>Field wells</h2>
 <table>
-  <tr><th>Well</th><th>Accepts</th><th>Required</th><th>Notes</th></tr>
-  <tr><td>Customer ID</td><td>Any identifier</td><td>Yes</td><td>One row per point of sale. Shown in the tooltip and the CSV export.</td></tr>
-  <tr><td>Latitude</td><td>Numeric</td><td>Yes</td><td>Decimal degrees, e.g. 40.4168.</td></tr>
-  <tr><td>Longitude</td><td>Numeric</td><td>Yes</td><td>Decimal degrees, e.g. −3.7038.</td></tr>
-  <tr><td>Visits per month</td><td>Numeric measure</td><td>These two…</td><td>How often the point is visited.</td></tr>
-  <tr><td>Minutes per visit</td><td>Numeric measure</td><td></td><td>Time spent on site per visit. Workload = visits × (minutes + travel time per visit — see <em>How travel is counted</em>).</td></tr>
-  <tr><td>Hours per month</td><td>Numeric measure</td><td>…or this</td><td>Workload already in hours per month, for data that has no visits/minutes split. One visit's travel is added. Ignored when Visits and Minutes are bound.</td></tr>
-  <tr><td>Postal code</td><td>Text or number</td><td>No</td><td>The client's postal code. Areas are then built from <strong>whole postal codes</strong> — a code never ends up split between two areas — and clicking an automatic area filters other visuals by its postal codes, a single condition instead of thousands of rows. The visual checks that the column is geographic: if fewer than half of the clients have their nearest client in the same code (a customer code bound here by mistake, say), it ignores the column, builds areas client by client, filters by rows and says so on the map.</td></tr>
-  <tr><td>Speed (km/h)</td><td>Numeric</td><td>No</td><td>Average travel speed around this point of sale — e.g. 25 in a city centre, 45 in its outskirts, 70 in the countryside. Overrides the km/h in the bar for that point; without it, the bar value applies to everyone. A classification column (urban / semi-urban / rural) mapped to three speeds is the usual way to fill it.</td></tr>
-  <tr><td>Area</td><td>Any text</td><td>No</td><td>Your commercial area (province, region…). Territories are built inside each area and never cross it. When bound, the <em>Areas</em> number in the bar is ignored.</td></tr>
+  <tr><th>Well</th><th>Accepts</th><th>Notes</th></tr>
+  <tr><td>Customer ID</td><td>Any identifier</td><td>One row per point of sale. Shown in the tooltip and the CSV export, and used to sort the clients so the result never depends on row order.</td></tr>
+  <tr><td>Latitude, Longitude</td><td>Numeric, decimal degrees</td><td>Required. Rows with values out of range are ignored.</td></tr>
+  <tr><td>Visits per month</td><td>Numeric</td><td>How often the point is visited; 0.5 means every two months.</td></tr>
+  <tr><td>Minutes per visit</td><td>Numeric</td><td>Time on site per visit. Without Visits and Minutes every point counts as one hour of visits a month, and the split is by number of clients.</td></tr>
+  <tr><td>Postal code</td><td>Text or number</td><td>Optional, for automatic areas. It does not change the result much — the visual already keeps towns together — but each area becomes a set of whole postal codes, the unit many companies assign territories in, and the code goes into the CSV export. It is ignored when you bind Area. A code wider than 25 km (a capital's code given to a whole province, say) is split into its towns. If the column is not geographic at all — fewer than half of the clients have their nearest client in the same code — it is ignored and the map says so.</td></tr>
+  <tr><td>Speed (km/h) <span class="pro">Pro</span></td><td>Numeric</td><td>Travel speed around this point — e.g. 25 in a city centre, 45 in its outskirts, 70 in the countryside. Overrides the bar's km/h for that point.</td></tr>
+  <tr><td>Area <span class="pro">Pro</span></td><td>Any text</td><td>Your commercial areas. Each client stays in its own Area value; territories are built inside each area and never cross it. When bound, the bar's Areas number is ignored.</td></tr>
+  <tr><td>Tooltips</td><td>Measures</td><td>Extra values on hover; report tooltip pages are supported.</td></tr>
 </table>
-<div class="note">
-  <strong>Units matter.</strong> Hours per salesperson in the bar are <strong>hours per month</strong>. If you
-  bind <em>Hours per month</em>, it must be in hours too. If your data holds minutes, bind Visits and
-  Minutes instead, or create a measure that divides by 60. <strong>No workload bound</strong> means every
-  point counts as one hour and territories are balanced by number of clients — the panel warns you.
-</div>
 
 <h2>The control bar</h2>
-<p>The parameters sit inside the visual, above the map, and work in reading view. In edit mode the
-values you set are saved with the report so it opens that way for everyone; in reading view a reader
-can change them freely and nothing is written back.</p>
+<p>The bar sits inside the visual, above the map, and works in reading view. In edit mode its values are
+saved with the report; in reading view a reader can change them and nothing is written back.</p>
 <table>
   <tr><th>Control</th><th>What it does</th></tr>
-  <tr><td>Hours / salesperson / month</td><td>Field hours available per month to <strong>one</strong> salesperson, visits and travel included (e.g. 20 days × 7 h = 140) — the size of a territory. The same for everyone. <strong>The number of salespeople is derived from it</strong>: the area's workload, travel included, divided by these hours.</td></tr>
-  <tr><td>± %</td><td>Tolerance. 10 means every territory should fall between 90% and 110% of the hours. The panel flags those that do not.</td></tr>
-  <tr><td>km/h</td><td>Average travel speed, to turn distance into time, for every point that has no <em>Speed</em> of its own. 45 is a reasonable mix of city and road; a single figure is a rough model — bind Speed per point when you can.</td></tr>
-  <tr><td>Road ×</td><td>Road factor over the straight line. 1.3 means "30% longer than the straight line", a common average.</td></tr>
-  <tr><td>Working days / month (format pane)</td><td><strong>20 by default.</strong> A working day is the hours per salesperson divided by this. The visits that fit in a day share one trip out to the territory and back — see <em>How travel is counted</em>.</td></tr>
-  <tr><td colspan="2"><strong>How travel is counted.</strong> The visual does not compute road routes; it uses the continuous route approximation from logistics (Beardwood–Halton–Hammersley, 1959; Daganzo, 1984), the standard way to plan without routing. Each visit pays <em>Road × (hop to the next client + 2 × distance to the territory centre ÷ visits per day) ÷ speed</em>. The hop is the mean distance to the client's three nearest neighbours; visits per day follow from the month, so a dense urban territory shares the daily trip among eight visits and a rural one among three. Distances are straight lines times the road factor, so the model is for sizing and designing territories, not for planning the day's route.</td></tr>
-  <tr><td>Areas</td><td>Number of commercial areas to draw automatically when no <em>Area</em> field is bound: compact geographic cells weighted by workload, with no size constraint. An area only joins states or provinces that share a land border — it never reaches across a gulf or a sea (Baja California Sur is never grouped with Sinaloa). <strong>Islands get an area of their own</strong>, on top of the number you type: every land group apart from the main one in your data — Balearic Islands, each Canary province, the Azores, Sicily, Crete, Hawaii — is its own area, named after it, because a salesperson does not drive from Palma to Valencia. Islands that belong to a mainland region (Euboea, Cozumel) stay with it. <strong>A salesperson's territory never crosses the sea</strong>: inside an area, each island is split on its own, so Las Palmas gives separate territories for Gran Canaria, Lanzarote and Fuerteventura, and a small island shows a partial one ("0.3 salespeople") — someone covers it part-time. Without a postal code, clients within 2 km of each other are kept together as a town, so an area boundary does not split a village. 0 = no areas, one plan for everything.</td></tr>
-  <tr><td>Outlier km</td><td>A point of sale whose <em>third</em>-nearest client is farther than this is an outlier: it is drawn hollow and left out, for you to decide. 0 = no outliers. Every other client always belongs to a territory, so that its hours count in the salespeople needed.</td></tr>
-  <tr><td>Recalculate</td><td>Runs the balancing again with the current values. Changing any value and pressing Enter does the same.</td></tr>
+  <tr><td>Hours / salesperson / month</td><td>Field hours available per month to one salesperson, visits and travel included (e.g. 20 days × 7 h = 140). It is the size of a territory — a hard cap — and the salespeople needed are the workload divided by it.</td></tr>
+  <tr><td>km/h</td><td>Average travel speed for every point without a Speed of its own. 45 is a reasonable mix of town and road.</td></tr>
+  <tr><td>Road ×</td><td>Road distance over straight-line distance. Set it for your country: published averages are about 1.2 for the United States, 1.3 for India, 1.5 for Mexico and 1.6 for Spain (see the <a href="methodology.html#travel">Methodology</a>). Higher means more travel and more salespeople.</td></tr>
+  <tr><td>Areas</td><td>Number of commercial areas to draw automatically when no Area field is bound. They follow geography and do not balance hours: an area that needs 12 salespeople next to one that needs 2 is a correct answer. Areas only join regions that share a land border, so they never reach across a gulf or the sea; islands and archipelagos (Balearic Islands, each Canary province, Azores, Sicily, Crete, Hawaii…) get an area of their own, named after them, on top of the number you type. 0 = nothing is computed.</td></tr>
+  <tr><td>Recalculate</td><td>Runs the calculation again. Changing a value and pressing Enter does the same.</td></tr>
+  <tr><td>Export CSV <span class="pro">Pro</span></td><td>Downloads <code>customer_id, area, territory, load_hours_month</code> for every client, plus <code>postal_code</code> when bound.</td></tr>
+  <tr><td>Export map PDF <span class="pro">Pro</span></td><td>Saves the map as you see it — outlines, points, area badges and legend — at twice the screen resolution, on a one-page PDF. PDF because Power BI does not let a visual download image files such as PNG; it pastes into a slide and prints well.</td></tr>
 </table>
 
-<h2>The panel</h2>
-<p>Under the map: how many territories were created, how many points, whether all of them are inside
-the tolerance band (and if not, how many are outside), what share of total hours is travel, and how
-many areas. With areas, one chip per <strong>area</strong>: its name, how many territories (= salespeople)
-it needs, its hours, and how many of its territories are outside the band. Without areas, one chip per
-territory with its points, hours and deviation — <strong>the ones outside the band come first</strong>,
-marked with ⚠. Hover any point for its customer ID, workload, territory and area.</p>
-<p><strong>Export CSV</strong> downloads the assignment: customer ID, area, territory number and monthly
-workload. The file is built inside the visual and handed to Power BI's own download dialog; nothing is
-uploaded anywhere. See the FAQ if the button says the export was not allowed.</p>
-<p><strong>Export map PDF</strong> (Pro) saves the map as you see it — outlines, points, area badges and
-legend — at twice the screen resolution, on a one-page PDF. Power BI does not let a visual download
-image files such as PNG; a PDF opens anywhere and pastes into a slide. It needs the same tenant
-setting as the CSV.</p>
+<h2>Format pane</h2>
+<table>
+  <tr><th>Card</th><th>Settings</th></tr>
+  <tr><td>Territories</td><td><strong>Working days / month</strong> (20): a working day is the hours per salesperson divided by this, and the visits that fit in a day share one trip out and back. <strong>Outlier distance (km)</strong> (0 = off): a client whose third-nearest client is farther than this is drawn hollow and left out of the calculation, for you to decide.</td></tr>
+  <tr><td>Area badges</td><td>Show, shape (circle or rectangle), font, size, text, background and border colours, border width.</td></tr>
+  <tr><td>Map</td><td>Marker size.</td></tr>
+</table>
+
+<h2>Reading the result</h2>
+<ul>
+  <li><strong>Colours</strong> are areas. Points and badges shrink as you zoom out.</li>
+  <li><strong>Badge</strong> on each area: salespeople it needs, to one decimal (6.4, not "6 or 7": rounding
+  is your decision). A small area or island can show a fraction such as 0.3 — someone covers it
+  part-time.</li>
+  <li><strong>Legend</strong>: salespeople needed per area and in total. Click a row or a badge to focus
+  that area; other visuals on the page are filtered to it.</li>
+  <li><strong>Tooltip</strong> on any point: customer, monthly workload split into visit and travel,
+  territory number, area and postal code.</li>
+  <li><strong>Territories</strong> are not drawn in their own colour — there can be hundreds. Each client's
+  territory number is in its tooltip and in the CSV export. A territory never exceeds the hours in the
+  bar, never crosses an area boundary and never crosses the sea.</li>
+</ul>
+
+<h2>Free and Pro</h2>
+<table>
+  <tr><th>Free</th><th>Pro</th></tr>
+  <tr><td>Everything above with automatic areas: workload and travel model, salespeople needed per area,
+  territories, outlines, filters, bookmarks, tooltips, high contrast, English and Spanish.</td>
+  <td>Your own <strong>Area</strong> field, <strong>Speed</strong> per point, <strong>Export CSV</strong>
+  and <strong>Export map PDF</strong>.</td></tr>
+</table>
+<p>While you edit a report without a licence, Area and Speed work under a "Pro preview" watermark so you
+can see what they add; in reading view the free result is shown. The exports show a note and, where
+Power BI can check licences, its own purchase link.</p>
 
 <h2>How it works, in short</h2>
-<p><strong>Areas first.</strong> If you bind an Area field, those are the areas. Otherwise the visual
-draws the number you asked for: compact geographic cells around the workload, with no size
-constraint, so they are convex and never interleave. Then, inside each area, the territories:</p>
-<p>Each territory carries a bias. Every point joins the territory that minimises distance² plus bias.
-If a territory ends up with too much work its bias rises and it attracts less; if it has too little,
-the bias falls. Iterated, the workloads converge to the capacity and the territories come out
-compact and convex — no islands, no fingers. Travel time depends on the assignment and the
-assignment on travel time, so the two are recomputed together until they settle. The number of
-territories is adjusted between passes until the total fits. That leaves the great majority of
-territories inside the band; a final repair pass then treats the band as a hard rule — it moves
-and swaps single points of sale along the borders, and splits or dissolves a territory when nothing
-else works — until every territory is inside it. Last, a clean-up removes isolated clients: a point
-whose neighbours all belong to another territory is moved into it, or swapped with a border client of
-similar workload, whenever both territories stay inside the band. The same data and parameters
-always give the same result.</p>
+<p>Each client's workload is its visit time plus travel. Travel is estimated, not routed: each visit pays
+the hop to the next client (the mean distance to its three nearest clients) and its share of one trip a
+day from the territory's base and back, shared among the visits that fit in a day — the continuous
+approximation of routing used in logistics planning. Distances are straight lines times the road factor.
+Areas come from your field or from weighted k-means that respects land borders. Inside each area and each
+island, territories are built from the towns outward and balanced with a power diagram, with one
+salesperson's hours as a hard cap. Salespeople needed = workload ÷ hours per salesperson. The same data and
+parameters always give the same result. The full explanation, with formulas and references, is in the
+<a href="methodology.html">Methodology</a>.</p>
 
 <h2>Frequently asked questions</h2>
 
-<details><summary>A territory is flagged ⚠ outside the tolerance</summary>
-<p>Some are, and always on the short side: on a 40,000-point test of Spain, 45 of 720 territories
-end below the band and none above; on 30,000 points across the contiguous United States, 118 of 756
-below, none above. The visual never moves a client out of a territory to make the hours fit — that
-is what leaves clients stranded in a colleague's town. A territory over the cap is split into two
-compact halves instead, and a short territory is dissolved into its neighbours whenever all of its
-clients fit under their cap; the ones that remain are those whose neighbours have no room. The rule is asymmetric on purpose — a salesperson with spare hours can be given
-more later; one at 130% cannot be asked — so a territory that cannot shed a border client is split
-even if the new one ends short. The panel tells you which side and why. <em>Below</em>: not enough clients within reach — a remote area whose whole workload is less
-than one salesperson's hours gives one short territory, and that is the honest answer. <em>Above</em>:
-a single point of sale carries more of the territory than the tolerance allows and cannot be placed
-anywhere without breaking the band on the other side. Widening the tolerance a few points brings most
-of them in; the trade-off is that territories get less equal.</p></details>
+<details><summary>Why does nothing happen when I only add coordinates?</summary>
+<p>Territories are built inside areas, so the visual waits until there are areas: bind an Area field or
+type a number in Areas. Until then it shows your points in grey and says so.</p></details>
+
+<details><summary>Some clients are in the "wrong" area when I use my Area field</summary>
+<p>With the Area field, each client goes exactly where your data puts it — the visual never overrides
+it, because a company may assign a town across a provincial border on purpose. If a client labelled
+"Madrid" sits in Guadalajara, check the value in your data. For areas drawn purely by location, leave
+Area empty and type a number in Areas.</p></details>
 
 <details><summary>Why areas first, instead of asking for big territories?</summary>
-<p>Because balancing hours and keeping geography sensible pull in opposite directions, and at the
-scale of a region the hours must lose. A region is a management unit — "Aragón, +12%" is useful;
-"Aragón minus two towns that go with Catalonia" is not. So areas are drawn (or taken from your field)
-with no size constraint, which is what makes them compact and whole, and the hours are balanced
-where it matters: between the salespeople inside each area.</p></details>
-
-<details><summary>Export CSV says the export was not allowed or not completed</summary>
-<p>Downloads from custom visuals are governed by a Power BI tenant setting that is <strong>off by
-default</strong> and applies to Power BI Desktop as well as the service: <em>Allow downloads from custom
-visuals</em>, under Tenant settings → Power BI visuals in the Fabric admin portal. Ask your
-administrator to enable it (it is separate from the general export settings), make sure you are
-signed in to Power BI, and try again. Before the first download Power BI asks you to confirm you trust
-the visual. Nothing about your data leaves the visual in any of this: the file is generated locally and
-handed to Power BI's own save dialog.</p></details>
-
-<details><summary>Why is there no street map behind the points?</summary>
-<p>A street map means fetching tiles from a third-party server, and every tile request would tell
-that server which area you are looking at. For a visual that handles customer addresses, that
-information should stay in your report. So the visual makes no network requests at all. What it does
-draw is <strong>embedded outlines</strong> — country borders and first-level regions (states,
-provinces, departments) for every country — from Natural Earth (public domain), packaged inside the
-visual and simplified to a few kilometres. Only the outlines around your data are drawn. Enough to
-know where you are, not a street map.</p></details>
+<p>Because balancing hours and keeping geography sensible pull in opposite directions, and at the scale
+of a region the hours must lose. A region is a management unit — "Aragón needs 12.4" is useful; "Aragón
+minus two towns that go with Catalonia" is not. So areas follow geography with no size constraint, and the
+hours are balanced where it matters: between the salespeople inside each area.</p></details>
 
 <details><summary>Are the distances real road distances?</summary>
-<p>No — straight line multiplied by the road factor. Real routing needs an online service, which
-would mean network access. A factor of 1.3 is a common average for mixed road networks; raise it in
-mountainous or coastal areas, lower it on grids.</p></details>
+<p>No — straight line multiplied by the road factor, which you set for your country. Real routing needs an
+online service, which would mean sending your customers' locations over the network. The model is for
+sizing and designing territories, not for planning the day's route; see the
+<a href="methodology.html#assumptions">assumptions and limitations</a>.</p></details>
+
+<details><summary>Export says it was not allowed or not completed</summary>
+<p>Downloads from custom visuals are governed by a Power BI tenant setting that is <strong>off by
+default</strong> and applies to Power BI Desktop as well as the service: <em>Allow downloads from custom
+visuals</em>, under Tenant settings → Power BI visuals in the Fabric admin portal. Ask your administrator
+to enable it, make sure you are signed in to Power BI, and try again. Before the first download Power BI
+asks you to confirm you trust the visual. The file is generated inside the visual and handed to Power BI's
+own save dialog; nothing is uploaded anywhere.</p></details>
+
+<details><summary>Why is there no street map behind the points?</summary>
+<p>A street map means fetching tiles from a third-party server, and every tile request would tell that
+server which area you are looking at. So the visual makes no network requests at all and draws embedded
+outlines instead: country borders and first-level regions (states, provinces, departments) for every
+country, from Natural Earth, simplified to a few kilometres. Only the outlines around your data are
+drawn.</p></details>
 
 <details><summary>Can the visual write the territories into my model?</summary>
-<p>No. Power BI custom visuals can read the data they are given but cannot modify the dataset. The
-visual is a design and simulation tool: tune, look, decide, then carry the assignment across with the
-CSV export.</p></details>
+<p>No. Power BI custom visuals can read the data they are given but cannot modify the dataset. The visual
+is a design and simulation tool: tune, look, decide, then carry the assignment across with the CSV
+export.</p></details>
 
 <details><summary>How many points can it handle?</summary>
-<p>All of them. Power BI hands the rows over in blocks of 30,000; the visual asks for the next block until it has every row ("Loading points… 30,000 so far"), then balances the full set ("Balancing 41,260 points…"). The only ceiling is the memory Power BI gives a visual. Balancing 40,000 points takes about 20 seconds in a browser; a typical few thousand takes a second or two.</p></details>
+<p>All of them. Power BI hands the rows over in blocks of 30,000; the visual asks for the next block until
+it has every row ("Loading points… 30,000 so far"), then computes on the full set ("Balancing 41,260
+points…"). The only ceiling is the memory Power BI gives a visual. On the sample data, 20,000 clients take
+about 5 seconds and 41,000 about 10; a few thousand take a second or two.</p></details>
 
 <details><summary>Everything collapsed into a single point</summary>
-<p>Customer ID is not bound, so Power BI aggregated every latitude into one value. Bind an identifier
+<p>Customer ID is not bound, so Power BI aggregated every coordinate into one value. Bind an identifier
 with one row per point of sale.</p></details>
 
-<details><summary>The number of territories seems wrong</summary>
-<p>It is total workload divided by capacity, travel included. If it looks too high, check the units:
-a Value in minutes instead of hours makes every point sixty times heavier.</p></details>
+<details><summary>The number of salespeople seems wrong</summary>
+<p>It is workload ÷ hours per salesperson, travel included. Check the units: Minutes per visit must be
+minutes, and Hours / salesperson / month must be monthly hours. Then check the road factor and speed: they
+decide the travel share, which you can see per client in the tooltip.</p></details>
 
 <h2>Privacy</h2>
 <p>The visual makes no network requests, stores nothing and needs no companion service. See the
@@ -212,6 +215,7 @@ a Value in minutes instead of hours makes every point sixty times heavier.</p></
 
 <footer>
   <span>© 2026 TCViz</span>
+  <a href="methodology.html">Methodology</a>
   <a href="privacy.html">Privacy</a>
   <a href="terms.html">Terms</a>
   <a href="changelog.html">Changelog</a>

@@ -6,12 +6,12 @@
 <title>Terms of Use — Sales Territory Balancer by TCViz</title>
 <style>
   :root{--bg:#FAF9F5;--bg2:#EDE9DE;--bd:#F5F3ED;--line:#DAD9D4;
-        --t1:#3D3929;--t2:#535146;--t3:#83827D;--acc:#C96442;--accd:#B05730}
+        --t1:#3D3929;--t2:#535146;--t3:#83827D;--acc:#2B6CB0;--accd:#1F4E80;--acc2:#3E9C5B}
   *{box-sizing:border-box}
   body{margin:0;background:var(--bg);color:var(--t1);
        font-family:'Segoe UI',system-ui,-apple-system,sans-serif;line-height:1.65}
   .wrap{max-width:840px;margin:0 auto;padding:48px 24px 80px}
-  header{border-bottom:3px solid var(--acc);padding-bottom:20px;margin-bottom:36px}
+  header{border-bottom:3px solid transparent;border-image:linear-gradient(90deg,#1F4E80,#2B6CB0,#3E9C5B) 1;padding-bottom:20px;margin-bottom:36px}
   h1{margin:0 0 6px;font-size:32px;letter-spacing:-.5px}
   h2{margin:36px 0 12px;font-size:21px;color:var(--accd)}
   h3{margin:24px 0 8px;font-size:16px;color:var(--t1)}
@@ -32,7 +32,7 @@
 
 <header>
   <h1>Terms of Use &amp; Licence</h1>
-  <p class="sub">Sales Territory Balancer — a Power BI custom visual by TCViz · Last updated: 29 September 2026 · Applies to version 1.0.0.0 and later</p>
+  <p class="sub">Sales Territory Balancer — a Power BI custom visual by TCViz · Last updated: 7 October 2026 · Applies to version 1.0.0.0 and later</p>
 </header>
 
 <p>By installing or using Sales Territory Balancer (the "visual") you agree to these terms. If you do
@@ -43,22 +43,22 @@ not agree, do not install or use it.</p>
 Microsoft Power BI, for as long as these terms are respected. You may use it in commercial reports,
 in as many reports as you like, and share those reports with your colleagues and clients.</p>
 
-<h2>2. Pricing</h2>
-<p>This version of the visual is <strong>free, with every capability available</strong>. There is no
-licence check, no watermark and no time limit. TCViz may introduce a paid tier in a future version;
-if that happens, these terms will be updated with a new date and version, the Free tier will keep
-producing a complete and correct result, and nothing will be watermarked in a published report.</p>
-
+<h2>2. Free and Pro</h2>
+<p>The visual has a <strong>Free</strong> tier, with no time limit, and a <strong>Pro</strong> tier bought
+through Microsoft AppSource. The Free tier produces a complete and correct result; Pro adds the
+capabilities below. Licences are checked only through Power BI's own licensing API.</p>
 <table>
-  <tr><th style="width:60%">Capability</th><th>Version 1.0.0.0</th></tr>
-  <tr><td>Balanced territories computed from latitude, longitude and workload</td><td>✓</td></tr>
-  <tr><td>Number of territories derived from the capacity you set</td><td>✓</td></tr>
-  <tr><td>Travel time from average speed and road factor</td><td>✓</td></tr>
-  <tr><td>Capacity, tolerance, speed and road factor changeable in reading view</td><td>✓</td></tr>
-  <tr><td>Per-territory workload panel, out-of-band territories flagged</td><td>✓</td></tr>
-  <tr><td>CSV export of the assignment</td><td>✓</td></tr>
-  <tr><td>Up to 30,000 points of sale (Power BI data reduction limit set by the visual)</td><td>✓</td></tr>
+  <tr><th style="width:60%">Capability</th><th>Free</th><th>Pro</th></tr>
+  <tr><td>Salespeople needed per area and territories, with travel time</td><td>✓</td><td>✓</td></tr>
+  <tr><td>Automatic areas (land borders, islands), postal codes, outliers</td><td>✓</td><td>✓</td></tr>
+  <tr><td>Parameters editable in reading view; filters, bookmarks, tooltips, high contrast, English and Spanish</td><td>✓</td><td>✓</td></tr>
+  <tr><td>Your own <strong>Area</strong> field</td><td>—</td><td>✓</td></tr>
+  <tr><td><strong>Speed</strong> per point</td><td>—</td><td>✓</td></tr>
+  <tr><td><strong>Export CSV</strong> of the assignment</td><td>—</td><td>✓</td></tr>
+  <tr><td><strong>Export map PDF</strong></td><td>—</td><td>✓</td></tr>
 </table>
+<p>While a report is being edited without a licence, Pro fields work under a "Pro preview" watermark so
+their effect can be seen; in reading view the Free result is shown and nothing is watermarked.</p>
 
 <h2>3. What you may not do</h2>
 <ul>
@@ -81,13 +81,13 @@ territories, and transmits nothing. See the <a href="privacy.html">Privacy Polic
   the CSV export or the assignment you see on screen, and load it the way you load any other data.
 </div>
 <ul>
-  <li><strong>Distances are straight-line, multiplied by the road factor.</strong> The visual has no
-      network access, so it cannot query a routing service. A road factor of 1.3 means "30% longer
-      than the straight line", which is a common average; it is not a route.</li>
-  <li><strong>Balance is a target, not a guarantee.</strong> The algorithm brings the great majority of
-      territories inside the tolerance band. Some may fall outside it, typically where a single point
-      of sale carries a large share of a territory's workload, or in sparse areas where no compact
-      territory can reach the capacity. Those territories are flagged in the panel.</li>
+  <li><strong>Distances are straight-line, multiplied by the road factor</strong>, which you set for
+      your country. The visual has no network access, so it cannot query a routing service; travel is
+      an estimate for planning, not a route.</li>
+  <li><strong>Territories never exceed the hours you set.</strong> Some end short — a remote area or a
+      small island may need only a fraction of a salesperson — and are shown as such.</li>
+  <li>How every figure is computed, with its assumptions and limitations, is published in the
+      <a href="methodology.html">Methodology</a>.</li>
   <li><strong>The result is deterministic.</strong> The same data with the same parameters produces the
       same territories every time, on any machine.</li>
   <li>You are responsible for validating a territory plan before acting on it.</li>
@@ -128,6 +128,7 @@ Continued use after an update constitutes acceptance.</p>
 <footer>
   <span>© 2026 TCViz</span>
   <a href="support.html">Support</a>
+  <a href="methodology.html">Methodology</a>
   <a href="privacy.html">Privacy</a>
   <a href="changelog.html">Changelog</a>
 </footer>

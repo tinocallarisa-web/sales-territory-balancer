@@ -17,8 +17,6 @@ import DataView = powerbi.DataView;
 export interface IClusterSettings {
     /** Horas utiles al mes por comercial: el TAMANO del cluster. */
     capacityHours: number;
-    /** Variacion aceptada sobre la capacidad, en %. */
-    tolerance: number;
     /** km/h medios para convertir distancia en tiempo de desplazamiento. */
     speedKmh: number;
     /** Factor carretera sobre linea recta: 1.3 = 30% mas que en linea recta. */
@@ -52,7 +50,6 @@ export class VisualSettings {
 
     public clusterSettings: IClusterSettings = {
         capacityHours: 140,
-        tolerance: 10,
         speedKmh: 45,
         detour: 1.3,
         areas: 0,
@@ -97,7 +94,6 @@ export class VisualSettings {
         const cs = objects["clusterSettings"];
         if (cs) {
             s.clusterSettings.capacityHours = VisualSettings.num(cs, "capacityHours", 1, 10000, s.clusterSettings.capacityHours);
-            s.clusterSettings.tolerance     = VisualSettings.num(cs, "tolerance", 1, 100, s.clusterSettings.tolerance);
             s.clusterSettings.speedKmh      = VisualSettings.num(cs, "speedKmh", 1, 200, s.clusterSettings.speedKmh);
             s.clusterSettings.detour        = VisualSettings.num(cs, "detour", 1, 3, s.clusterSettings.detour);
             s.clusterSettings.areas         = Math.round(VisualSettings.num(cs, "areas", 0, 500, s.clusterSettings.areas));

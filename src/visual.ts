@@ -250,6 +250,9 @@ export class Visual implements IVisual {
     /** Valor original (con su tipo: un codigo postal numerico sigue siendo numero) por texto. */
     private rawArea = new Map<string, powerbi.PrimitiveValue>();
     private rawPostal = new Map<string, powerbi.PrimitiveValue>();
+    /** Columna Customer ID y su valor original por texto: filtro exacto cuando el postal no sirve. */
+    private idCol: { table: string; column: string } | null = null;
+    private rawId = new Map<string, powerbi.PrimitiveValue>();
     /** Hay un filtro nuestro aplicado (o guardado con el informe). */
     private filterOn = false;
     /** Hay una seleccion por filas enviada (solo entonces se limpia). */
@@ -302,6 +305,8 @@ export class Visual implements IVisual {
     private proKey = "free";
     private lastOptions: VisualUpdateOptions | null = null;
     private emitEvents = true;
+    /** Tamano del visual en el ultimo update (para no reencuadrar si no cambia). */
+    private lastViewport = "";
     /** Firma de los datos del ultimo calculo, para no recalcular en un simple resize. */
     private dataKey = "";
     private computeGen = 0;
@@ -459,7 +464,6 @@ export class Visual implements IVisual {
         };
         return {
             capacityHours: g("capacityHours", 1, 10000),
-            tolerance: this.live!.tolerance,
             speedKmh: g("speedKmh", 1, 200),
             detour: g("detour", 1, 3),
             areas: Math.round(g("areas", 0, 500)),
@@ -486,7 +490,7 @@ export class Visual implements IVisual {
         // En lectura NO se escribe nada: el lector explora, no le cambia el informe a nadie.
         if (this.editing) {
             this.host.persistProperties({
-                merge: [{ objectName: "clusterSettings", selector: (null as any), properties: (({ tolerance, ...resto }) => { void tolerance; return resto; })(nuevo) }]
+                merge: [{ objectName: "clusterSettings", selector: (null as any), properties: { ...nuevo } }]
             } as powerbi.VisualObjectInstancesToPersist);
         }
         if (this.lastPoints.length) this.compute(this.lastPoints);
@@ -627,12 +631,16 @@ export class Visual implements IVisual {
                 this.finished(options);
                 return;
             }
-            // mismos datos: solo reajustar el mapa (y el tamano de los circulos de area)
-            if (this.map && this.lastBounds) {
+            // mismos datos: reajustar el mapa SOLO si cambio el tamano del visual. Power BI tambien
+            // llama a update() tras un clic que filtra a otros visuales, y reencuadrar ahi perdia
+            // el zoom del usuario en cada clic (07-10-2026).
+            const vpKey = options.viewport ? `${Math.round(options.viewport.width)}x${Math.round(options.viewport.height)}` : "";
+            if (this.map && this.lastBounds && vpKey !== this.lastViewport) {
                 this.map.invalidateSize();
                 this.map.fitBounds(this.lastBounds, { padding: [24, 24] });
                 this.rescaleBadges();
             }
+            this.lastViewport = vpKey;
             this.finished(options);
         } catch (e) {
             if (this.emitEvents) this.events.renderingFailed(options, String(e));
@@ -666,18 +674,15 @@ export class Visual implements IVisual {
                     tolerance: 0,
                     speedKmh: live.speedKmh,
                     detour: live.detour,
-                    // REPARTO POR CRECIMIENTO (regla del usuario): del foco mas denso hacia
-                    // fuera, cada zona toma los clientes mas cercanos hasta llenar un comercial;
-                    // lo que sobra, para el siguiente foco; lo que sobra de una zona son los
-                    // mas lejanos de su centroide. Sin reequilibrar despues: el diagrama de
-                    // potencia igualaba las zonas y vaciaba los cascos.
+                    // Camino de produccion de clusterPoints: pueblos + diagrama de potencia en
+                    // subllamadas + posproceso, sin reequilibrar por banda (ver la cabecera de
+                    // clustering.ts y notes/especificacion-algoritmo.md).
                     growthOnly: true,
-                    // TODO cliente entra en un territorio: el radio ya no deja clientes fuera
-                    // (en un visual que dimensiona plantilla, sus horas tienen que contar). Los
-                    // outliers se marcan aparte, solo si el usuario pone "Outlier km".
+                    // Sin radio maximo: toda la carga entra en un territorio (los restos que no
+                    // caben quedan como territorio parcial). Los apartados se marcan antes, solo
+                    // si el usuario pone "Outlier km" (markOutliers).
                     outlierKm: 1e6,
-                    workDays: live.workDays,
-                    rounds: 12
+                    workDays: live.workDays
                 };
                 // OUTLIERS fuera antes de nada: clientes tan apartados que no son de ningun
                 // territorio (tercer vecino a mas de "Outlier km"). Se marcan y no entran.
@@ -739,7 +744,7 @@ export class Visual implements IVisual {
         const cols = table.columns;
         const idx = (role: string) => cols.findIndex(c => c.roles?.[role]);
         const idIdx = idx("customer_id"), latIdx = idx("latitude"), lonIdx = idx("longitude");
-        const valIdx = idx("value"), visIdx = idx("visits"), minIdx = idx("minutes"), areaIdx = idx("area"), spdIdx = idx("speed"), postIdx = idx("postal");
+        const visIdx = idx("visits"), minIdx = idx("minutes"), areaIdx = idx("area"), spdIdx = idx("speed"), postIdx = idx("postal");
         // columnas del pozo Tooltips (puede haber varias)
         const tipCols: { i: number; name: string }[] = [];
         cols.forEach((c, i) => { if (c.roles?.["tooltips"]) tipCols.push({ i, name: c.displayName }); });
@@ -765,7 +770,8 @@ export class Visual implements IVisual {
         };
         this.areaCol = target(areaIdx);
         this.postalCol = target(postIdx);
-        this.rawArea.clear(); this.rawPostal.clear();
+        this.idCol = target(idIdx);
+        this.rawArea.clear(); this.rawPostal.clear(); this.rawId.clear();
 
         const result: ClusterPoint[] = [];
         this.rowSel = [];
@@ -777,9 +783,11 @@ export class Visual implements IVisual {
             if (!isFinite(lat) || !isFinite(lon) || Math.abs(lat) > 90 || Math.abs(lon) > 180) continue;
             const visits = visIdx >= 0 ? Number(row[visIdx]) : NaN;
             const minutes = minIdx >= 0 ? Number(row[minIdx]) : NaN;
-            const value = valIdx >= 0 ? Number(row[valIdx]) : NaN;
+            // No hay pozo de horas: sin Visits ni Minutes, cada cliente cuenta 1 h de visita al mes
+            const value = 1;
             if (areaIdx >= 0 && row[areaIdx] != null) this.rawArea.set(String(row[areaIdx]), row[areaIdx]);
             if (postIdx >= 0 && row[postIdx] != null) this.rawPostal.set(String(row[postIdx]), row[postIdx]);
+            if (idIdx >= 0 && row[idIdx] != null) this.rawId.set(String(row[idIdx]), row[idIdx]);
             result.push({
                 customerId: idIdx >= 0 ? String(row[idIdx] ?? "") : "",
                 lat, lon,
@@ -839,7 +847,36 @@ export class Visual implements IVisual {
         const fit = this.map.getBoundsZoom(this.lastBounds, false, L.point(48, 48));
         return Math.max(0.35, Math.min(1, Math.pow(2, (this.map.getZoom() - fit) * 0.5)));
     }
-    private dots: { mk: L.CircleMarker; r: number }[] = [];
+    private dots: { mk: L.CircleMarker; r: number; p: ClusterPoint }[] = [];
+
+    /** Estilo de un punto segun el foco (lo unico del mapa que depende de el). */
+    private dotStyle(p: ClusterPoint, r: number): { radius: number; color: string; weight: number; fillOpacity: number; opacity: number } {
+        const on = this.inFocus(p), foco = !!this.focus, outlier = p.clusterId < 0;
+        return {
+            radius: on && foco ? r + 1.5 : r,
+            color: this.hc.on ? (on && foco ? this.hc.sel : outlier ? this.hc.fg : this.hc.bg) : outlier ? "#8a8880" : on && foco ? "#222222" : "#ffffff",
+            // borde proporcional al radio: con puntos pequenos, 0,8 px de borde blanco tapaban el color
+            weight: outlier ? Math.min(1.2, r * 0.4) : on && foco ? Math.min(1.5, r * 0.5) : Math.min(0.8, r * 0.2),
+            fillOpacity: on ? 0.95 : 0.45, opacity: on ? 1 : 0.6
+        };
+    }
+
+    /**
+     * Cambio de foco SIN reconstruir el mapa (07-10-2026: "va muy muy lento"). Antes cada clic
+     * destruia y recreaba Leaflet con todos los puntos, contornos, circulos y leyenda; ahora solo
+     * se reestilizan los puntos existentes, con su escala de zoom.
+     */
+    private restyleDots(): boolean {
+        if (!this.map || !this.dots.length) return false;
+        const r = this.settings.mapSettings.markerSize, z = this.lastZoomScale;
+        for (const d of this.dots) {
+            const st = this.dotStyle(d.p, r);
+            d.r = st.radius;
+            d.mk.setStyle({ color: st.color, weight: st.weight, fillOpacity: st.fillOpacity, opacity: st.opacity });
+            d.mk.setRadius(Math.max(0.5, st.radius * z));
+        }
+        return true;
+    }
     private lastZoomScale = 1;
     private applyZoomScale(): void {
         const z = this.zoomScale();
@@ -891,7 +928,7 @@ export class Visual implements IVisual {
         const same = this.focus && this.focus.kind === kind && this.focus.id === id;
         this.focus = same ? null : { kind, id };
         const points = this.lastPoints;
-        this.renderMap(points, true);
+        if (!this.restyleDots()) this.renderMap(points, true);
 
         // seleccion de Power BI: filtra otros visuales con los clientes de la zona (si el
         // informe lo permite); sin foco, se limpia
@@ -903,7 +940,8 @@ export class Visual implements IVisual {
         // cada visual. Un filtro de columna es una sola condicion:
         //   - area del campo Area: Area = "Aragon";
         //   - area automatica: Postal code IN (los codigos del area), que son enteros por area.
-        // Sin ninguna de las dos columnas, la seleccion por filas de siempre.
+        //   - si el postal no es exacto: Customer ID IN (los clientes del area).
+        // Solo si no hay ninguna columna usable, la seleccion por filas.
         if (kind === "area" && this.lastAreas) {
             const reg = this.lastAreas;
             let f: { table: string; column: string } | null = null;
@@ -915,6 +953,13 @@ export class Visual implements IVisual {
             } else if (this.postalCol && this.postalFilterOk) {
                 f = this.postalCol;
                 for (const p of points) if (this.inFocus(p) && p.postal != null) { const r = this.rawPostal.get(p.postal); if (r !== undefined) vals.add(r); }
+            } else if (this.idCol) {
+                // Sin codigo postal exacto (no hay, se ignoro o alguno se partio entre areas):
+                // Customer ID IN (clientes del area). Exacto y una sola condicion; la seleccion
+                // por filas que habia antes mandaba miles de identidades y era muy lenta
+                // (07-10-2026, misma queja que el 30-09).
+                f = this.idCol;
+                for (const p of points) if (this.inFocus(p) && p.customerId !== "") { const r = this.rawId.get(p.customerId); if (r !== undefined) vals.add(r); }
             }
             if (f && vals.size) {
                 this.clearSelection();
@@ -948,11 +993,13 @@ export class Visual implements IVisual {
             if (this.areaCol && col === this.areaCol.column) {
                 const i = reg.names.indexOf(String(f.values[0]));
                 if (i >= 0) target = i;
-            } else if (this.postalCol && col === this.postalCol.column) {
-                // el area con mas clientes de esos codigos postales (son enteros por area)
+            } else if ((this.postalCol && col === this.postalCol.column) || (this.idCol && col === this.idCol.column)) {
+                // el area con mas clientes de esos codigos postales / clientes
                 const cnt = new Map<number, number>();
-                for (const p of points) if (p.clusterId >= 0 && p.postal != null && vals.has(p.postal)) {
-                    const a = reg.res.areaOfTerritory[p.clusterId]; cnt.set(a, (cnt.get(a) ?? 0) + 1);
+                const porId = !!this.idCol && col === this.idCol.column;
+                for (const p of points) {
+                    const k = porId ? p.customerId : p.postal;
+                    if (p.clusterId >= 0 && k != null && vals.has(k)) { const a = reg.res.areaOfTerritory[p.clusterId]; cnt.set(a, (cnt.get(a) ?? 0) + 1); }
                 }
                 let best = -1; for (const [a, n] of cnt) if (best < 0 || n > (cnt.get(best) ?? 0)) best = a;
                 if (best >= 0) target = best;
@@ -964,7 +1011,7 @@ export class Visual implements IVisual {
         const same = (next === null && this.focus === null) || (!!next && !!this.focus && next.kind === this.focus.kind && next.id === this.focus.id);
         if (same) return false;
         this.focus = next;
-        this.renderMap(this.lastPoints, true);
+        if (!this.restyleDots()) this.renderMap(this.lastPoints, true);
         return true;
     }
 
@@ -973,7 +1020,7 @@ export class Visual implements IVisual {
         if (!this.lastAreas && !this.lastResult) return;
         if (!ids || !ids.length) {
             this.selOn = false;
-            if (this.focus && !this.focusViaFilter) { this.focus = null; this.renderMap(this.lastPoints, true); }
+            if (this.focus && !this.focusViaFilter) { this.focus = null; if (!this.restyleDots()) this.renderMap(this.lastPoints, true); }
             return;
         }
         const keys = new Set(ids.map(id => id.getKey()));
@@ -994,7 +1041,7 @@ export class Visual implements IVisual {
         this.focus = terr.size === 1 || !reg ? { kind: "terr", id: top(terr) } : { kind: "area", id: top(area) };
         this.focusViaFilter = false;
         this.selOn = true;
-        this.renderMap(this.lastPoints, true);
+        if (!this.restyleDots()) this.renderMap(this.lastPoints, true);
     }
 
     private clearSelection(): void {
@@ -1082,17 +1129,9 @@ export class Visual implements IVisual {
         // (un territorio de 5 puntos solo se entiende viendo a sus vecinos).
         this.dots = []; this.lastZoomScale = 1;   // los puntos nuevos nacen a radio completo
         for (const p of points) {
-            const on = this.inFocus(p);
-            const outlier = p.clusterId < 0;
-            const radius = on && this.focus ? r + 1.5 : r;
-            const mk = L.circleMarker([p.lat, p.lon], {
-                renderer, radius,
-                fillColor: colorOf(p),
-                color: this.hc.on ? (on && this.focus ? this.hc.sel : outlier ? this.hc.fg : this.hc.bg) : outlier ? "#8a8880" : on && this.focus ? "#222222" : "#ffffff",
-                // borde proporcional al radio: con puntos pequenos, 0,8 px de borde blanco tapaban el color
-                weight: outlier ? Math.min(1.2, r * 0.4) : on && this.focus ? Math.min(1.5, r * 0.5) : Math.min(0.8, r * 0.2), fillOpacity: on ? 0.95 : 0.45, opacity: on ? 1 : 0.6, interactive: false
-            }).addTo(this.map);
-            this.dots.push({ mk, r: radius });
+            const st = this.dotStyle(p, r);
+            const mk = L.circleMarker([p.lat, p.lon], { renderer, fillColor: colorOf(p), interactive: false, ...st }).addTo(this.map);
+            this.dots.push({ mk, r: st.radius, p });
         }
         // al alejar el mapa, puntos y circulos de area encogen con el (zoomend salta tambien con fitBounds)
         this.map.on("zoomend", () => this.applyZoomScale());
@@ -1441,13 +1480,15 @@ export class Visual implements IVisual {
         // EXPORTAR ES PRO: la asignacion es lo que el cliente se lleva. Sin vista previa.
         if (!this.isPro) { this.blockExport(); return; }
         const reg = this.lastAreas;
-        const lines = [reg ? "customer_id,area,territory,load_hours_month" : "customer_id,territory,load_hours_month"];
+        const conCP = points.some(p => p.postal != null && p.postal !== "");
+        const lines = [(reg ? "customer_id,area,territory,load_hours_month" : "customer_id,territory,load_hours_month") + (conCP ? ",postal_code" : "")];
         const q = (s: string): string => /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
         for (const p of points) {
             const h = ((p.load ?? p.value * 60) / 60).toFixed(2);
             const terr = p.clusterId < 0 ? (p.outlier ? "outlier" : "unassigned") : String(p.clusterId + 1);
             const areaName = p.clusterId < 0 ? "" : reg ? reg.names[reg.res.areaOfTerritory[p.clusterId]] : "";
-            lines.push(reg ? `${q(p.customerId)},${q(areaName)},${terr},${h}` : `${q(p.customerId)},${terr},${h}`);
+            const cp = conCP ? "," + q(p.postal ?? "") : "";
+            lines.push((reg ? `${q(p.customerId)},${q(areaName)},${terr},${h}` : `${q(p.customerId)},${terr},${h}`) + cp);
         }
         this.download(lines.join(String.fromCharCode(10)), "territories.csv", "csv", "Territory assignment");
     }

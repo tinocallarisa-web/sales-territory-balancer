@@ -1,38 +1,43 @@
 Sales Territory Balancer 1.0.0.0 - GUID clusterWeighted7852F42A6D8A494CB286C44ACCF04FBB
-(the GUID keeps the prototype's working name)
+Repo, branch certification: github.com/tinocallarisa-web/sales-territory-balancer
+Docs: tinocallarisa-web.github.io/sales-territory-balancer (support, methodology)
+Video: VIDEO_URL_PENDING
 
-SOURCE CODE
-github.com/tinocallarisa-web/sales-territory-balancer, branch "certification". PUBLIC.
+PLEASE READ FIRST - PRO PREVIEW
+Without a licence, IN EDIT MODE ONLY, the Pro fields Area and Speed work under a
+"Pro preview" watermark and a banner names them. Intentional, not missing gating.
+In reading view, before the licence resolves, and where licences cannot be read,
+the FREE result is drawn (automatic areas, bar speed). Exports (CSV, map PDF) are
+Pro: without a licence they show a note and Power BI's purchase notification.
 
-TESTING - NO KEY NEEDED
-No activation key, no paid tier: every capability is free, no licence check, no watermark.
+TESTING - FREE (no licence)
+1. Bind Customer ID, Latitude, Longitude, Visits per month, Minutes per visit.
+   The map shows grey points and asks for areas.
+2. Type 5 in Areas (bar above the map): areas, badges and legend appear with the
+   salespeople needed. Works in READING view too; nothing is persisted there.
+3. Change Hours/salesperson, km/h or Road x: it recomputes.
+4. Click a legend row or badge: other visuals filter to that area.
+5. In EDIT mode bind Area or Speed: preview watermark + banner. Reading view:
+   free result, no watermark.
+With an active plan the same features render clean and the exports download.
 
-WHAT TO CHECK
-Bind Customer ID, Latitude, Longitude, Visits per month + Minutes per visit (or Hours per
-month), optionally Area (text). Bar above the map: hours per salesperson, tolerance, km/h,
-road factor, automatic areas. Change any value: veil "Balancing N points", recompute - in
-READING view too, nothing persisted there. Panel: territories, band status, travel share, one
-chip per area or territory. Tooltip: id, load, territory, area. Deterministic. Export CSV uses
-host.downloadService (privilege ExportContent): Power BI's own dialog, subject to the tenant
-setting "Allow downloads from custom visuals"; if not allowed, the panel says so. Export map
-PDF (Pro): same API, base64 PDF built in the visual (one JPEG page, no library, no network).
+EXPORTS
+host.downloadService.exportVisualsContent (privilege ExportContent): CSV, and a
+one-page PDF (base64) written by the visual from the map canvas. Subject to the
+tenant setting "Allow downloads from custom visuals"; if blocked, a note says so.
 
-PRIVACY - PLEASE VERIFY, IT IS THE POINT OF THE DESIGN
-No network calls of any kind: no fetch, no XMLHttpRequest, no external scripts or fonts, no
-telemetry. The only privilege is ExportContent (the CSV download above). Deliberately NO
-tile basemap: a tile request tells a third party where the user is looking, and this visual
-handles customer addresses; the bundle has no tile URL. The outlines behind the points are
-EMBEDDED (Natural Earth, public domain, src/outlines.ts), drawn from the package. Only the bar's five numbers are
-persisted (edit mode, persistProperties). No innerHTML: DOM built with createElement/textContent.
+PRIVACY / NETWORK
+No fetch, XMLHttpRequest, external scripts, fonts or telemetry. Only privilege:
+ExportContent. No tile basemap on purpose; outlines are embedded (Natural Earth,
+src/outlines.ts). No innerHTML. Only the bar's values are persisted (edit mode).
 
-ALGORITHM, FOR CONTEXT
-Areas first (workload-weighted k-means, or the user's Area field); inside each, capacitated
-clustering by a power diagram with dual ascent (bias per territory, points join the one
-minimising distance^2 + bias), Lloyd steps, band-enforcing local search, island clean-up.
-Distances: straight line x road factor. 40,000 points in ~15 s. Reads and draws only.
+LICENSING
+Plans sales-territory-balancer-pro and partner, matched on a Service ID ending in
+them; Active and Warning accepted. Requested without blocking the first paint;
+Free after 5 s or on failure. isLicenseUnsupportedEnv respected. No own licence UI.
 
-Toolchain: tools 7.2.1, API 5.11.1, TypeScript 5.5.4, ESLint 9 with eslint-plugin-powerbi-
-visuals (3 files, 0 errors). npm audit 0. Rendering events on every update() path;
-renderingFinished is raised before the balancing starts, since it runs asynchronously.
+RENDERING EVENTS: one renderingStarted and one renderingFinished/Failed per
+update(); balancing runs async after it; the licence repaint emits none.
 
-Support/privacy/terms: tinocallarisa-web.github.io/sales-territory-balancer/
+Algorithm: docs/methodology.html. Reads and draws only.
+Toolchain: tools 7.2.1, API 5.11.1, ESLint 9 + powerbi plugin 0 errors, audit 0.

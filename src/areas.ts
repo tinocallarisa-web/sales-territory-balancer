@@ -4,14 +4,17 @@
  * AREAS COMERCIALES A NIVEL DE CODIGO POSTAL (decision del usuario, 30-09-2026).
  *
  * El producto responde primero a la pregunta de dimensionamiento (Zoltners-Sinha: dimensionar
- * antes que alinear): cuantos comerciales necesita cada area. Las areas se construyen SIEMPRE
- * con codigos postales enteros (un codigo nunca se parte entre areas), y pueden venir:
- *   - del usuario (provincia, comunidad, region...): cada codigo postal va al area de la
- *     mayoria de sus clientes;
+ * antes que alinear): cuantos comerciales necesita cada area. Las areas se construyen con
+ * codigos postales enteros, salvo dos excepciones: un codigo de mas de 25 km se parte por
+ * pueblos, y un codigo que no es geografico (coherencia < 0,5) se ignora. Pueden venir:
+ *   - del usuario (provincia, comunidad, region...): cada cliente va a SU valor de Area; el
+ *     codigo postal no interviene (hasta el 07-10-2026 movia clientes al area con mas peso de
+ *     su codigo, contra el dato del usuario);
  *   - automaticas: el usuario dice cuantas y se agrupan codigos postales vecinos en ese numero
  *     de areas compactas y de UNA SOLA PIEZA (k-medias ponderado por carga sobre los centros
  *     de los codigos + reparacion de contigüidad sobre la vecindad de Delaunay).
- * Sin codigo postal, cada cliente es su propia unidad.
+ * Sin codigo postal: en automaticas, "pueblos" (clientes a <= 2 km); con el campo Area, cada
+ * cliente es su propia unidad.
  *
  * Con el estado de cada punto (regions.ts), las areas automaticas solo unen unidades de estados
  * con frontera terrestre comun: la vecindad de Delaunay en linea recta cruzaba golfos y mares
@@ -69,6 +72,9 @@ export function buildAreas(points: ClusterPoint[], postal: ((p: ClusterPoint) =>
     // Postal code, o los inventados del 04-10-2026, que juntaban clientes a 250-465 km) sale
     // 0,00, y como un codigo nunca se parte, las areas se mezclaban. Por debajo de 0,5 se
     // ignora el codigo y cada cliente es su propia unidad; el visual lo dice en el mapa.
+    // Con el campo Area el codigo postal no interviene (manda el dato del usuario, cliente a
+    // cliente; decision de Tino 07-10-2026): solo se evalua en areas automaticas.
+    if (mode === "field") postal = null;
     if (postal && tri) {
         const keys = points.map(p => postal(p) ?? "");
         const cnt = new Map<string, number>(); for (const k of keys) cnt.set(k, (cnt.get(k) ?? 0) + 1);
@@ -142,7 +148,7 @@ export function buildAreas(points: ClusterPoint[], postal: ((p: ClusterPoint) =>
     const ux = new Float64Array(U), uy = new Float64Array(U), uw = new Float64Array(U);
     for (let u = 0; u < U; u++) { let sx = 0, sy = 0, sw = 0; for (const i of members[u]) { sx += x[i] * w[i]; sy += y[i] * w[i]; sw += w[i]; } ux[u] = sx / sw; uy[u] = sy / sw; uw[u] = sw; }
 
-    // --- modo campo: cada codigo al area de la mayoria de sus clientes ------------------------
+    // --- modo campo: unidades = clientes (sin postal), cada uno a su valor de Area --------------
     if (mode === "field") {
         const nameIds = new Map<string, number>();
         const labels = [...new Set(points.map(p => p.area ?? ""))].sort();

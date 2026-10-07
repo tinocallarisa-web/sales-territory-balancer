@@ -1,40 +1,32 @@
 "use strict";
 
 /**
- * Zonas de venta equilibradas por carga de trabajo.
+ * Territorios de venta por carga de trabajo. Especificacion completa, con referencias a linea,
+ * en notes/especificacion-algoritmo.md; explicacion para usuarios en docs/methodology.html.
  *
- * Reparte N puntos entre zonas de forma que cada una lleve una carga mensual parecida y sus
- * puntos queden juntos. Es clustering CAPACITADO: un k-means equilibra geometria, no
- * trabajo, y deja a un comercial con 90 horas y a otro con 210.
+ * Cada territorio es el mes de UN comercial: su carga (visitas + desplazamiento) no pasa de las
+ * horas de la barra (tope duro). El numero de territorios no se pide: sale de la carga.
  *
- * El numero de zonas NO se pide: sale de la carga total dividida por la capacidad. Es la
- * pregunta que se hace un director de ventas -cuantos comerciales necesito-, no al reves.
+ * CAMINO DE PRODUCCION (el visual llama con growthOnly = true y tolerance = 0):
+ *   1. Carga y desplazamiento por cliente (aproximacion continua de rutas: salto a los 3 vecinos
+ *      mas cercanos + viaje diario a la base repartido entre las visitas del dia).
+ *   2. Pueblos: grupos densos de clientes. El que no cabe en un comercial se parte (diagrama de
+ *      potencia sobre ese pueblo; partes que aun se pasan, biseccion por el eje principal).
+ *   3. Clientes de campo a la semilla de pueblo mas cercana con hueco.
+ *   4. Lo que queda: diagrama de potencia con ascenso dual (cada zona lleva un sesgo w; cada
+ *      cliente va a la que minimiza d^2 + w; la que se pasa sube su sesgo), sembrado por
+ *      crecimiento desde el foco mas denso, alternado con Lloyd, y reparacion local por voto de
+ *      los 10 vecinos (drain).
+ *   5. Posproceso: reclamar clientes hacia centros mas cercanos (directo o en cadena), seguridad
+ *      del tope, fusion de zonas cortas. Los restos que no caben en nadie quedan como TERRITORIO
+ *      PARCIAL: toda la carga cuenta en los comerciales necesarios.
  *
- * LA DIFICULTAD REAL: el desplazamiento depende del reparto y el reparto del desplazamiento.
- * Una zona de 40 puntos juntos y otra de 40 dispersos no pesan igual aunque sumen las mismas
- * horas de visita. Se resuelve iterando.
+ * La rama sin growthOnly (rondas de Lloyd + reparacion de banda +/-tolerancia) solo se usa hoy
+ * dentro de las subllamadas de los pasos 2 y 4.
  *
- * METODO: diagrama de potencia con ascenso dual. Cada zona lleva un sesgo w; cada punto va a
- * la zona que minimiza d^2 + w. Si una zona se pasa de carga su sesgo sube y se vuelve menos
- * atractiva; si le falta, baja. Iterado con centros fijos converge, y las zonas salen
- * CONVEXAS y compactas: sin islas ni dedos. Alternado con Lloyd (recentrar) para mover los
- * centros.
- *
- * Esto sustituye a una version O(n^2): para cada punto recorria todos los demas con
- * haversine. Con las 30.000 filas del mapeo eran 900 millones de llamadas -22 s medidos-
- * antes de dibujar nada. Aqui cada punto mira solo a los ~30 centros mas cercanos, que se
- * encuentran con una rejilla espacial: O(n x 30) por paso, no O(n^2).
- *
- * Todo lo que hay aqui esta medido, no supuesto, sobre 40.000 puntos y 688 zonas en la
- * version Python de referencia (test_visuales/zonificar.py, 28-09-2026):
- *   - tope del sesgo 20 radios^2: con 8x, 79% de zonas dentro de +/-10%; con 20x, 87%;
- *     con 50x, 85% (ruido). Estricto (3x) solo para zonas vacias, que eran agujeros negros.
- *   - 150 iteraciones de sesgo: con 300, igual.
- *   - 12 pasos de Lloyd: con 6, 72,8%; con 12, 88,5%. Es la palanca principal.
- *   - intercambio de centros sobre la banda de tolerancia, no con multiplos fijos: con 1,5x
- *     nunca disparaba (maximo real 209 h, umbral 210).
- *   - quedarse con la mejor vuelta: el intercambio mejora el grueso y remueve las colas.
- * Resultado de referencia: 91% dentro de +/-10%, contiguidad 92%, determinista.
+ * Origen: version O(n^2) con haversine (22 s solo en la matriz de vecinos con 30.000 filas);
+ * aqui cada punto mira a sus ~30 centros mas cercanos con una rejilla espacial. Mediciones de
+ * la version Python de referencia en test_visuales/zonificar.py (28-09-2026).
  */
 
 export interface ClusterPoint {
@@ -109,7 +101,7 @@ export interface ZoningOptions {
     noTowns?: boolean;
     /** Como se parte un pueblo en comerciales: "power" (diagrama, por defecto) o "bisect". */
     townSplit?: "power" | "bisect";
-    /** Radio maximo de una zona en el crecimiento (km). Sin el: media jornada a la velocidad de la barra. */
+    /** Radio maximo de una zona en el crecimiento (km). Sin el (o <= 0): 100 km. El visual pasa 1e6 (sin radio). */
     outlierKm?: number;
     /** Centros vecinos que cuentan como "frontera" en la reparacion. 12 por defecto; menos = mas estricto. */
     repairNeighbours?: number;
@@ -520,8 +512,7 @@ export function clusterPoints(points: ClusterPoint[], opt: ZoningOptions): Zonin
         }
         let ptr = 0;
         const fill = capMin;                     // llenar un comercial nominal (140 h)
-        // radio maximo de una zona: el de outlier si el usuario lo ha dado; si no, lo que se
-        // recorre en media jornada a la velocidad de la barra (un comercial no va mas lejos)
+        // radio maximo de una zona: maxRadio (outlierKm si se da; si no, 100 km)
             const d2s = new Float64Array(n), idx: number[] = [];
         while (true) {
             while (ptr < n && taken[order[ptr]]) ptr++;
@@ -760,17 +751,15 @@ export function clusterPoints(points: ClusterPoint[], opt: ZoningOptions): Zonin
             }
             if (!todos) for (let q = hechos.length - 1; q >= 0; q--) moveG(hechos[q].i, hechos[q].from, hechos[q].nlOld);
         }
-        // Lo que sigue en zonas de <= 3 clientes son restos que no caben en nadie: SIN
-        // TERRITORIO ("si asignamos un territorio tenemos que clavar el resto": o fundido, o
-        // fuera; nunca una zona de dos puntos).
-        for (let c = 0; c < k; c++) {
-            if (membersG[c].length === 0 || membersG[c].length > 3 || totG[c] >= capMin * (1 - tol)) continue;
-            for (const i of membersG[c].slice()) { totG[c] -= load[i]; asig[i] = -1; load[i] = visits[i] * minutes[i]; unassignedCount++; }
-            membersG[c].length = 0;
-        }
-        // SIN TERRITORIO: un cliente que queda a mas de maxRadio de su centro (los restos que
-        // el crecimiento juntaba en "zonas" de seis puntos a 200 km) no se asigna: se marca y
-        // lo decide el director. Regla del usuario: outliers, no forzar.
+        // Lo que sigue en zonas cortas son restos que no caben en ningun territorio vecino: se
+        // quedan como TERRITORIO PARCIAL (p. ej. "La Gomera: 0,3 comerciales"). Hasta el
+        // 07-10-2026 los restos de <= 3 clientes quedaban sin territorio y su carga no contaba
+        // en los comerciales necesarios: un visual que dimensiona plantilla se quedaba corto
+        // (un area de 2 clientes daba 0 h). Decision de Tino: toda la carga cuenta.
+        //
+        // SIN TERRITORIO solo queda un cliente a mas de maxRadio de su centro. En produccion el
+        // visual pasa outlierKm = 1e6, asi que no ocurre: los apartados se marcan antes, con
+        // "Outlier km" del panel (markOutliers), y lo decide el director.
         for (let i = 0; i < n; i++) {
             const c = asig[i]; if (c < 0) continue;
             const d = Math.hypot(x[i] - cx[c], y[i] - cy[c]);
@@ -1539,11 +1528,10 @@ function repairBand(n: number, x: Float64Array, y: Float64Array, visits: Float64
             if (re === 0) break;
         }
     };
-    // REGLA B: sin busqueda local por vecinos (no aportaba: islas 1,19% frente a 1,14% sin
-    // ella, y era la fuente de "puntos que se mueven" que el usuario no entendia). Solo la
-    // fusion de zonas cortas, que si respeta la forma.
+    // Fusion de zonas cortas, y al final (tras la seguridad del tope) la busqueda local por
+    // voto de los 10 vecinos (drain). Solo se ejecuta en las subllamadas del diagrama de
+    // potencia; el nivel superior (growthOnly) no pasa por aqui.
     for (let ronda = 0; ronda < 8; ronda++) { if (!fuseShort()) break; }
-    void drain;
     // Seguridad del TOPE: el recentrado de la reparacion puede dejar una zona unas decimas por
     // encima (154,9 h en un caso). Se ceden clientes ligeros de frontera a vecinas con hueco,
     // sin mirar el potencial; si no hay vecina con hueco, se queda y el panel lo dice.

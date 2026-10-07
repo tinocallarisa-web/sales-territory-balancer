@@ -38,7 +38,7 @@
   "Role_Minutes": "Minutes per visit",
   "Role_Minutes_Desc": "Time spent per visit, in minutes. Optional; used together with Visits per month.",
   "Role_Postal": "Postal code",
-  "Role_Postal_Desc": "Optional postal code (or any basic area such as municipality). Areas are always built from whole postal codes: a postal code is never split between areas.",
+  "Role_Postal_Desc": "Optional postal code (or any basic area such as municipality). Areas are built from whole postal codes; a code wider than 25 km is split by town, and a column that is not geographic is ignored (the map says so).",
   "Role_Speed": "Speed (km/h) (Pro)",
   "Role_Speed_Desc": "Pro: travel time per point instead of one speed for everybody. Average speed around this point of sale (e.g. urban 25, semi-urban 45, rural 70); overrides the km/h in the bar. Without Pro it shows as a watermarked preview while editing.",
   "Role_Tooltips": "Tooltips",

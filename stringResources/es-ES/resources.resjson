@@ -38,7 +38,7 @@
   "Role_Minutes": "Minutos por visita",
   "Role_Minutes_Desc": "Tiempo de cada visita, en minutos. Se usa junto con Visitas al mes.",
   "Role_Postal": "Código postal",
-  "Role_Postal_Desc": "Código postal opcional (o cualquier área básica, como el municipio). Las áreas se forman siempre con códigos postales enteros: un código nunca se reparte entre dos áreas.",
+  "Role_Postal_Desc": "Código postal opcional (o cualquier área básica, como el municipio). Las áreas se forman con códigos postales enteros; un código de más de 25 km se parte por pueblos, y una columna que no es geográfica se ignora (el mapa lo dice).",
   "Role_Speed": "Velocidad (km/h) (Pro)",
   "Role_Speed_Desc": "Pro: tiempo de viaje por punto en lugar de una velocidad única. Velocidad media alrededor de este punto de venta (p. ej. urbano 25, semiurbano 45, rural 70); sustituye a los km/h de la barra. Sin Pro se ve como vista previa con marca de agua mientras editas.",
   "Role_Tooltips": "Información sobre herramientas",

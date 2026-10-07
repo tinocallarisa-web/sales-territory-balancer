@@ -6,12 +6,12 @@
 <title>Privacy Policy — Sales Territory Balancer by TCViz</title>
 <style>
   :root{--bg:#FAF9F5;--bg2:#EDE9DE;--bd:#F5F3ED;--line:#DAD9D4;
-        --t1:#3D3929;--t2:#535146;--t3:#83827D;--acc:#C96442;--accd:#B05730}
+        --t1:#3D3929;--t2:#535146;--t3:#83827D;--acc:#2B6CB0;--accd:#1F4E80;--acc2:#3E9C5B}
   *{box-sizing:border-box}
   body{margin:0;background:var(--bg);color:var(--t1);
        font-family:'Segoe UI',system-ui,-apple-system,sans-serif;line-height:1.65}
   .wrap{max-width:840px;margin:0 auto;padding:48px 24px 80px}
-  header{border-bottom:3px solid var(--acc);padding-bottom:20px;margin-bottom:36px}
+  header{border-bottom:3px solid transparent;border-image:linear-gradient(90deg,#1F4E80,#2B6CB0,#3E9C5B) 1;padding-bottom:20px;margin-bottom:36px}
   h1{margin:0 0 6px;font-size:32px;letter-spacing:-.5px}
   h2{margin:36px 0 12px;font-size:21px;color:var(--accd)}
   h3{margin:24px 0 8px;font-size:16px;color:var(--t1)}
@@ -34,7 +34,7 @@
 
 <header>
   <h1>Privacy Policy</h1>
-  <p class="sub">Sales Territory Balancer — a Power BI custom visual by TCViz · Last updated: 29 September 2026</p>
+  <p class="sub">Sales Territory Balancer — a Power BI custom visual by TCViz · Last updated: 7 October 2026</p>
 </header>
 
 <div class="card ok">
@@ -53,18 +53,21 @@ the rest of your dataset, your Power BI workspace, your account or your device.<
   <tr><th>Field well</th><th>What it receives</th></tr>
   <tr><td><code>Customer ID</code></td><td>One identifier per point of sale, shown in the tooltip and in the CSV export.</td></tr>
   <tr><td><code>Latitude</code>, <code>Longitude</code></td><td>The coordinates of each point, used in memory to compute distances and draw the map.</td></tr>
-  <tr><td><code>Hours per month</code></td><td>Monthly workload per point, used as its weight.</td></tr>
+  <tr><td><code>Visits per month</code>, <code>Minutes per visit</code></td><td>Optional. The workload of each point: visits × (minutes + travel time).</td></tr>
+  <tr><td><code>Postal code</code></td><td>Optional. Used to build automatic areas from whole postal codes and to filter other visuals; shown in the tooltip and the CSV export.</td></tr>
+  <tr><td><code>Speed (km/h)</code></td><td>Optional. Travel speed around each point.</td></tr>
   <tr><td><code>Area</code></td><td>Optional commercial area label; territories are built inside it. Shown in the tooltip and the CSV.</td></tr>
-  <tr><td><code>Visits per month</code>, <code>Minutes per visit</code></td><td>Optional. When bound, the workload is visits × (minutes + travel time) instead of the value field.</td></tr>
+  <tr><td><code>Tooltips</code></td><td>Optional values shown on hover.</td></tr>
 </table>
 
 <h2>2. Network access</h2>
 <div class="note">
   <strong>The visual makes no network requests whatsoever.</strong> There are no <code>fetch</code> or
   <code>XMLHttpRequest</code> calls, no external scripts, no fonts loaded from a CDN, no analytics,
-  no telemetry, no error reporting and no advertising. Its <code>privileges</code> array in
-  <code>capabilities.json</code> is empty, which means Power BI itself blocks any outbound
-  connection at the platform level.
+  no telemetry, no error reporting and no advertising. The only privilege it declares in
+  <code>capabilities.json</code> is <code>ExportContent</code>, which lets it hand a file to Power BI's own
+  download dialog (§4). It declares no web-access privilege, so Power BI itself blocks any outbound
+  connection at the platform level. The map outlines (Natural Earth) are packaged inside the visual.
 </div>
 <p>This is also why the map has <strong>no street background</strong>. A background map would mean
 fetching tiles from a third-party server, and every tile request would tell that server which area
@@ -73,8 +76,8 @@ the information that should stay inside your report. Territories read perfectly 
 basemap: what matters is their shape relative to each other.</p>
 
 <h2>3. What is written, and where</h2>
-<p>While a report is being <em>edited</em>, the visual persists the four values of its control bar —
-capacity in hours per month, tolerance, average speed and road factor — inside your own
+<p>While a report is being <em>edited</em>, the visual persists the values of its control bar —
+hours per salesperson, average speed, road factor and number of areas — inside your own
 <code>.pbix</code> report file, through the standard Power BI <code>persistProperties</code> API, so
 the report opens with the settings its author chose. In <em>reading view</em> nothing is written:
 a reader can change the values to explore, and the report is not modified.</p>
@@ -90,15 +93,17 @@ a reader can change the values to explore, and the report is not modified.</p>
 
 <h2>4. CSV and PDF export</h2>
 <p>The <strong>Export CSV</strong> button builds a file in your browser's memory from the current
-assignment (customer ID, territory, workload) and hands it to your browser as a download. <strong>Export map
+assignment (customer ID, area, territory, workload) and hands it to Power BI's own download dialog,
+which your Power BI administrator controls (tenant setting <em>Allow downloads from custom visuals</em>). <strong>Export map
 PDF</strong> does the same with a picture of the map as it is on screen. Nothing is uploaded anywhere;
 the files exist only where you choose to save them.</p>
 
 <h2>5. Licensing</h2>
-<p>This version of the visual has no paid tier and performs no licence check. If a Pro tier is added
-in a future version, entitlement will be checked only through Microsoft's official
-<code>IVisualLicenseManager</code> API, which is part of Power BI itself, and this policy will be
-updated and dated accordingly.</p>
+<p>The visual has a free tier and a Pro tier. Entitlement is checked only through Microsoft's official
+<code>IVisualLicenseManager</code> API, which is part of Power BI: Power BI tells the visual which of its
+plans the signed-in user holds, and nothing else. The visual sends nothing about you or your data to
+TCViz or anyone else to perform that check; licences are bought and managed in Microsoft AppSource and the
+Microsoft 365 admin center.</p>
 
 <h2>6. Support requests</h2>
 <p>If you open an issue on GitHub or email us, we receive whatever you choose to include — typically
@@ -120,6 +125,7 @@ Bug reports: <a href="mailto:support@tcviz.com?subject=Sales%20Territory%20Balan
 <footer>
   <span>© 2026 TCViz</span>
   <a href="support.html">Support</a>
+  <a href="methodology.html">Methodology</a>
   <a href="terms.html">Terms</a>
   <a href="changelog.html">Changelog</a>
 </footer>

@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Methodology — Sales Territory Balancer by TCViz</title>
+<meta name="description" content="How Sales Territory Balancer computes workload, travel, sales force size, commercial areas and territories: algorithms, formulas, assumptions, limitations and references.">
+<style>
+  :root{--bg:#FAF9F5;--bg2:#EEF2F6;--line:#DAD9D4;
+        --t1:#3D3929;--t2:#535146;--t3:#83827D;
+        --acc:#2B6CB0;--accd:#1F4E80;--acc2:#3E9C5B;--warn:#B7791F}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--t1);
+       font-family:'Segoe UI',system-ui,-apple-system,sans-serif;line-height:1.7}
+  .wrap{max-width:920px;margin:0 auto;padding:48px 24px 80px}
+  header{border-bottom:3px solid transparent;border-image:linear-gradient(90deg,#1F4E80,#2B6CB0,#3E9C5B) 1;
+         padding-bottom:20px;margin-bottom:28px}
+  h1{margin:0 0 6px;font-size:32px;letter-spacing:-.5px}
+  h2{margin:48px 0 12px;font-size:23px;color:var(--accd);scroll-margin-top:16px}
+  h3{margin:28px 0 8px;font-size:17px;scroll-margin-top:16px}
+  .sub{color:var(--t3);font-size:14px;margin:0}
+  .pill{display:inline-block;margin:10px 6px 0 0;padding:3px 10px;border-radius:20px;background:var(--bg2);font-size:12px;color:var(--t2)}
+  table{width:100%;border-collapse:collapse;margin:16px 0;font-size:14px}
+  th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{background:var(--bg2);font-weight:600}
+  td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
+  code{background:var(--bg2);padding:1px 6px;border-radius:4px;font-size:13px}
+  .eq{background:#fff;border:1px solid var(--line);border-left:4px solid var(--acc);border-radius:0 8px 8px 0;
+      padding:14px 18px;margin:16px 0;font-family:'Cambria Math','Cambria','Times New Roman',serif;font-size:17px;overflow-x:auto}
+  .eq .lbl{font-family:'Segoe UI',system-ui,sans-serif;font-size:12px;color:var(--t3);display:block;margin-bottom:4px}
+  var{font-style:italic}
+  pre{background:#fff;border:1px solid var(--line);border-radius:8px;padding:14px 16px;overflow-x:auto;font-size:13px;line-height:1.55}
+  .note{background:var(--bg2);border-left:4px solid var(--acc2);padding:14px 18px;border-radius:0 8px 8px 0;margin:18px 0}
+  .warn{background:#FFF8EC;border-left:4px solid var(--warn);padding:14px 18px;border-radius:0 8px 8px 0;margin:18px 0}
+  nav.toc{background:#fff;border:1px solid var(--line);border-radius:10px;padding:14px 22px;margin:22px 0 8px}
+  nav.toc ol{margin:6px 0;padding-left:20px;columns:2;column-gap:32px}
+  nav.toc li{margin:3px 0;break-inside:avoid}
+  .flow{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:18px 0}
+  .flow span{background:#fff;border:1px solid var(--line);border-radius:8px;padding:8px 12px;font-size:13px}
+  .flow b{color:var(--acc)}
+  ul,ol{padding-left:22px} li{margin:5px 0}
+  a{color:var(--accd)}
+  .refs li{margin:8px 0;font-size:14px}
+  footer{margin-top:56px;padding-top:20px;border-top:1px solid var(--line);color:var(--t3);font-size:13px;display:flex;gap:18px;flex-wrap:wrap}
+  @media (max-width:640px){nav.toc ol{columns:1} .eq{font-size:15px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <h1>Methodology</h1>
+  <p class="sub">Sales Territory Balancer — a Power BI custom visual by TCViz · How every number is computed</p>
+  <span class="pill">Version 1.0.0.0</span><span class="pill">Last updated: 7 October 2026</span>
+  <span class="pill"><a href="support.html">User guide</a></span>
+</header>
+
+<p>This page is written for people who want to know exactly what the visual computes before they trust
+it: analysts, operations researchers, sales-operations leads. It describes the algorithms as they run in
+version 1.0.0.0, the formulas and constants they use, the assumptions behind them and what they do
+<em>not</em> do. Where a choice comes from the literature, the reference is given; where it is our own
+engineering, it says so. Nothing here is aspirational: if the code does not do it, this page does not
+claim it.</p>
+
+<div class="note"><strong>In one paragraph.</strong> Each client's monthly workload is its visit time
+plus a travel estimate from the continuous approximation of routing (Beardwood–Halton–Hammersley;
+Daganzo). The workload is grouped into <strong>commercial areas</strong> — yours, or drawn automatically
+with weighted k-means++ constrained by land borders — and, inside each area and each landmass, into
+<strong>territories</strong> that each fit one salesperson's monthly hours. The number of salespeople is
+the workload divided by those hours: the classic workload approach to sales-force sizing (Talley, 1961).
+It is a sizing and design tool. It does not plan routes.</div>
+
+<nav class="toc"><strong>Contents</strong>
+<ol>
+  <li><a href="#scope">Scope: what it answers, what it does not</a></li>
+  <li><a href="#pipeline">The pipeline</a></li>
+  <li><a href="#inputs">Inputs and workload</a></li>
+  <li><a href="#travel">Travel: continuous approximation</a></li>
+  <li><a href="#sizing">Sales-force sizing</a></li>
+  <li><a href="#areas">Commercial areas</a></li>
+  <li><a href="#territories">Territories</a></li>
+  <li><a href="#geography">Geography: outlines, regions, islands</a></li>
+  <li><a href="#outputs">Outputs and interaction</a></li>
+  <li><a href="#determinism">Determinism and performance</a></li>
+  <li><a href="#assumptions">Assumptions and limitations</a></li>
+  <li><a href="#validation">Validation</a></li>
+  <li><a href="#references">References</a></li>
+  <li><a href="#credits">Data and software credits</a></li>
+</ol></nav>
+
+<h2 id="scope">1. Scope: what it answers, what it does not</h2>
+<p>Territory design is usually split into two questions (Zoltners &amp; Sinha, 2005): <strong>how many
+salespeople</strong> are needed (sizing), and <strong>which clients each one covers</strong>
+(alignment). The visual answers both, in that order, at planning level:</p>
+<ul>
+  <li><strong>Sizing.</strong> Salespeople needed per area and in total, as fractional full-time
+  equivalents (FTE) — 6.4, not "6 or 7" — so the decision of how to round stays with you.</li>
+  <li><strong>Alignment.</strong> A proposed territory for every client: compact, never above one
+  salesperson's monthly hours, never across an area boundary or the sea.</li>
+</ul>
+<p>It does <strong>not</strong> plan the day's route, schedule visits, model time windows or visit
+frequencies that vary by week, or read a road network. Distances are straight lines scaled by a road
+factor. That is the standard simplification for planning-level models (§4), and it is the reason the
+visual can run inside Power BI with no external service.</p>
+
+<h2 id="pipeline">2. The pipeline</h2>
+<div class="flow">
+  <span><b>1</b> Points &amp; workload</span>→
+  <span><b>2</b> Outliers (optional)</span>→
+  <span><b>3</b> Region &amp; landmass of each point</span>→
+  <span><b>4</b> Commercial areas</span>→
+  <span><b>5</b> Territories per area × landmass</span>→
+  <span><b>6</b> Salespeople needed</span>
+</div>
+<p>Nothing is computed until areas exist: either a field in <code>Area</code> or a number in the bar's
+<code>Areas</code> box. With only coordinates, the map shows the points and asks for areas. Each step is
+described below.</p>
+
+<h2 id="inputs">3. Inputs and workload</h2>
+<h3>3.1 Fields</h3>
+<table>
+  <tr><th>Field</th><th>Required</th><th>Use</th></tr>
+  <tr><td>Customer ID</td><td>Recommended</td><td>Identifies the client; also the sort key that makes results independent of row order.</td></tr>
+  <tr><td>Latitude, Longitude</td><td>Yes</td><td>Decimal degrees. Rows outside ±90 / ±180 or not numeric are ignored.</td></tr>
+  <tr><td>Visits per month</td><td>No</td><td>Visits to the client in a month (may be fractional: 0.5 = every two months).</td></tr>
+  <tr><td>Minutes per visit</td><td>No</td><td>Time on site per visit.</td></tr>
+  <tr><td>Speed (km/h)</td><td>No · Pro</td><td>Travel speed around this client; overrides the bar value.</td></tr>
+  <tr><td>Postal code</td><td>No</td><td>Basic geographic unit for building areas (§6.2).</td></tr>
+  <tr><td>Area</td><td>No · Pro</td><td>Your own areas (province, region, delegation). Without it, areas are automatic.</td></tr>
+  <tr><td>Tooltips</td><td>No</td><td>Extra values shown on hover.</td></tr>
+</table>
+<p>Power BI hands rows over in blocks of 30,000; the visual requests the next block until it has every
+row (<code>fetchMoreData</code>), then computes on the full set.</p>
+
+<h3>3.2 Visit workload</h3>
+<p>For client <var>i</var> with <var>v<sub>i</sub></var> visits per month of <var>m<sub>i</sub></var>
+minutes:</p>
+<div class="eq"><span class="lbl">Visit time per month (minutes)</span>
+<var>V<sub>i</sub></var> = <var>v<sub>i</sub></var> · <var>m<sub>i</sub></var></div>
+<p>Defaults when fields are missing: no visits → 1 visit; no minutes → 60 / <var>v<sub>i</sub></var>
+minutes. With neither, every client counts as one hour of visit time per month, and the result is a
+geographic split of the clients rather than a workload plan.</p>
+
+<h3>3.3 Outliers (optional)</h3>
+<p>If you set <code>Outlier km</code> in the format pane, a client whose <em>third</em> nearest client is
+farther than that straight-line distance is drawn hollow, labelled <code>outlier</code> in the export and
+left out of every area and territory — its hours do not count. Using the third neighbour means an
+isolated pair or trio is still flagged, while a village of four is not. The default is 0 (off).</p>
+
+<h2 id="travel">4. Travel: continuous approximation</h2>
+<p>Travel depends on the territory and the territory depends on travel, so an exact answer would need a
+route for every candidate territory. Planning models avoid that with the <strong>continuous
+approximation</strong> of routing (Daganzo, 1984a; Ansari et al., 2018): the length of a route that
+visits many points in a region is predicted from the number of points and the area they cover, without
+solving the route. The visual uses its two classic terms.</p>
+
+<h3>4.1 Coordinates and road distance</h3>
+<p>Coordinates are projected to kilometres with an equirectangular projection centred on the mean
+latitude of the points being computed (an error of tenths of a percent at the scale of a country,
+small next to the road factor). A straight-line distance <var>d</var> becomes travel time with</p>
+<div class="eq"><span class="lbl">Minutes per straight-line km</span>
+<var>τ<sub>i</sub></var> = <var>r</var> / <var>s<sub>i</sub></var> × 60</div>
+<p>where <var>r</var> is the road (circuity) factor from the bar and <var>s<sub>i</sub></var> the speed
+(the client's own Speed if given, else the bar value).</p>
+
+<h3>4.2 The hop to the next client</h3>
+<p>Beardwood, Halton &amp; Hammersley (1959) proved that the shortest tour through <var>n</var> random
+points in an area <var>A</var> has length ≈ β √(<var>n A</var>); per point that is
+β / √<var>ρ</var> with density <var>ρ</var> = <var>n</var>/<var>A</var>. The best estimate of the
+planar constant is β ≈ 0.7124 (Johnson, McGeoch &amp; Rothberg, 1996; independently 0.7120, Percus &amp;
+Martin, 1996). Rather than estimating densities, the visual measures the local spacing directly:</p>
+<div class="eq"><span class="lbl">Hop per visit (minutes)</span>
+<var>h<sub>i</sub></var> = <var>τ<sub>i</sub></var> · ⅓ ∑<sub><var>j</var> ∈ NN<sub>3</sub>(<var>i</var>)</sub> ‖<var>p<sub>i</sub></var> − <var>p<sub>j</sub></var>‖</div>
+<p>the mean straight-line distance to the three nearest clients. For points scattered at random (a
+Poisson process of density <var>ρ</var>) the expected distances to the 1st, 2nd and 3rd neighbours are
+0.5, 0.75 and 0.9375 / √<var>ρ</var>, whose mean is 0.729 / √<var>ρ</var> — the same order as the
+BHH constant, but measured on your data instead of assumed. Clustered clients get short hops,
+scattered ones long hops.</p>
+
+<h3>4.3 The daily trip, shared by the visits of the day</h3>
+<p>Daganzo (1984a) splits the distance of a tour into a <em>line-haul</em> part — getting from the depot
+to the zone and back, once per tour — and the local part of §4.2. Here the depot is the territory's
+base and a tour is a working day. The number of visits that fit in a day is not a parameter: it follows
+from the month.</p>
+<div class="eq"><span class="lbl">Working day and visits per day</span>
+<var>D</var> = <var>C</var> / <var>W</var> &nbsp;&nbsp;·&nbsp;&nbsp;
+<var>q<sub>i</sub></var> = max(1, <var>D</var> / <var>u<sub>i</sub></var>)</div>
+<p><var>C</var> is the salesperson's monthly hours (bar, in minutes), <var>W</var> the working days per
+month (format pane, default 20, so 140 h → 7 h a day) and <var>u<sub>i</sub></var> the mean visit time
+(<var>m</var> + <var>h</var>) over client <var>i</var> and its 30 nearest clients, weighted by visits. A
+dense urban zone with short visits fits about eight a day; a rural one with long visits, about three.
+The estimate leaves the day's own trip out of <var>u<sub>i</sub></var>, so it slightly overestimates
+<var>q</var>; it is never below one.</p>
+
+<h3>4.4 Monthly workload of a client</h3>
+<div class="eq"><span class="lbl">Monthly workload of client i in a territory with base c (minutes)</span>
+<var>L<sub>i</sub></var>(<var>c</var>) = <var>v<sub>i</sub></var> · ( <var>m<sub>i</sub></var> + <var>h<sub>i</sub></var> + <var>d</var>(<var>i</var>, <var>c</var>) · 2 <var>τ<sub>i</sub></var> / <var>q<sub>i</sub></var> )</div>
+<p>Each visit pays its hop and its share of one return trip from the base. A territory's workload is
+∑ <var>L<sub>i</sub></var>; its hours are that over 60.</p>
+<div class="note"><strong>Why not the simpler "trip from the centre for every visit"?</strong> Earlier
+builds charged each visit the trip from the territory centre, as if the salesperson drove back to base
+between clients: ten clients along one road paid ten trips instead of one. On the four sample datasets
+that asked for 6–15% more salespeople than the route-based model (Spain 679 → 636, United States
+637 → 555, Mexico 412 → 361, India 676 → 578, at 140 h, 45 km/h, road × 1.3).</div>
+
+<h3>4.5 The road factor</h3>
+<p>The ratio between road and straight-line distance varies by country and terrain, so it is a bar
+parameter (1.0–3.0, default 1.3) for you to set. Published average circuity factors give a starting
+point:</p>
+<table>
+  <tr><th>Country</th><th class="n">Average factor</th><th>Source</th></tr>
+  <tr><td>United States</td><td class="n">1.20</td><td>Ballou, Rahardja &amp; Sakai (2002)</td></tr>
+  <tr><td>United States (trips to hospital)</td><td class="n">1.42</td><td>Boscoe, Henry &amp; Zdeb (2012)</td></tr>
+  <tr><td>India</td><td class="n">1.31</td><td>Ballou et al. (2002)</td></tr>
+  <tr><td>Mexico</td><td class="n">1.46</td><td>Ballou et al. (2002)</td></tr>
+  <tr><td>Spain</td><td class="n">1.58</td><td>Ballou et al. (2002)</td></tr>
+</table>
+<p>Ballou's figures are inter-city averages with a wide spread (standard deviation up to 0.8), quoted here as they are commonly reproduced; check the original table before relying on a single value. Local factors can differ; if you can
+compute your own ratio from a sample of real trips, use it. Raising the factor raises travel time, and
+with it the salespeople needed — the legend updates as you type.</p>
+
+<h2 id="sizing">5. Sales-force sizing</h2>
+<p>The visual applies the <strong>workload approach</strong> (Talley, 1961; Zoltners &amp; Sinha, 2005):
+salespeople needed = total workload ÷ the workload one salesperson can carry.</p>
+<div class="eq"><span class="lbl">Salespeople needed in area a</span>
+<var>N<sub>a</sub></var> = ∑<sub><var>i</var> ∈ <var>a</var></sub> <var>L<sub>i</sub></var> ⁄ <var>C</var></div>
+<p>Shown to one decimal on the map (one badge per area) and in the legend, with the total. Every client
+counts: a remnant that fits in no full territory becomes a <em>partial</em> territory (§7.4), so a small
+island shows, for instance, 0.3 salespeople. Only clients you flag as outliers (§3.3) are excluded.
+Because <var>L<sub>i</sub></var> depends on the territory's base, <var>N<sub>a</sub></var> is computed
+after the territories (§7), not before.</p>
+
+<h2 id="areas">6. Commercial areas</h2>
+<p>Areas are the level at which you decide headcount: a province, a region, a delegation. They follow
+geography and <strong>do not balance hours</strong> — an area that needs 12 salespeople next to one that
+needs 2 is a correct answer, not a defect.</p>
+
+<h3>6.1 Your own areas (Area field)</h3>
+<p>Each client goes to its own Area value; the postal code plays no part. The visual never second-guesses
+the Area column: a client labelled "Madrid" that sits in Guadalajara stays in Madrid, because a company may
+assign a town across a provincial border on purpose.</p>
+
+<h3>6.2 Units: postal codes or towns</h3>
+<p>Automatic areas are built from <em>units</em>, never from loose clients, so that an area boundary does
+not cut a village in half. The postal code does not make the areas better — on the sample data the same
+areas come out with and without it (99–100% of the workload) — but it makes them <em>usable</em>: each
+area is a set of whole postal codes, the unit in which many companies assign territories, and the CSV
+export carries each client's code.</p>
+<ul>
+  <li><strong>With a postal code</strong>, a unit is a postal code. Two safeguards apply. A code whose
+  clients span more than 25 km (typically a capital's code given to a whole province) is split into its
+  towns. And the visual checks that the column is geographic at all: it measures the share of clients
+  whose nearest client has the same code (0.86–0.91 on real-style data); below 0.5 the column is
+  ignored, units are built as without a postal code, and the map says so.</li>
+  <li><strong>Without a postal code</strong>, a unit is a <em>town</em>: clients linked by Delaunay
+  edges of at most 2 km, plus clients at identical coordinates. A town wider than 25 km (a conurbation) is
+  cut into 5 km cells.</li>
+</ul>
+
+<h3>6.3 Grouping: weighted k-means++</h3>
+<p>Units are grouped into the requested number of areas <var>K</var> by k-means (Lloyd, 1982) weighted by
+visit time, seeded with k-means++ (Arthur &amp; Vassilvitskii, 2007), minimising</p>
+<div class="eq"><span class="lbl">Objective</span>
+∑<sub><var>u</var></sub> <var>w<sub>u</sub></var> · ‖<var>x<sub>u</sub></var> − <var>c</var><sub><var>a</var>(<var>u</var>)</sub>‖²</div>
+<p>with 24 restarts (at most 50 Lloyd iterations each) and the lowest objective kept. With a single start,
+binding a postal code or not left only 68–73% of the workload in the same area when five areas were
+requested, because several groupings are almost equally good; with 24 restarts, 99–100%.</p>
+
+<h3>6.4 Land borders and islands</h3>
+<p>Straight-line k-means happily groups the two shores of a gulf. Two rules prevent it, both from the
+embedded regional outlines (§8):</p>
+<ul>
+  <li><strong>Land groups.</strong> Regions connected by land borders form a land group (the Iberian
+  peninsula with France and the rest of Europe is one; the Balearic Islands, each Canary province, the
+  Azores, Sicily, Crete or Hawaii are others). The land group with most workload is grouped into the
+  <var>K</var> areas; <strong>every other land group becomes an area of its own</strong>, named after its
+  region, on top of <var>K</var>. A salesperson does not drive from Palma to Valencia.</li>
+  <li><strong>Contiguity.</strong> The neighbourhood graph between units is the Delaunay triangulation of
+  the clients (Delaunay, 1934), keeping only edges between regions that share a land border (or the same
+  region). An area split into pieces moves each smaller piece wholly to the area it shares most edges with
+  (Hess &amp; Samuels, 1971, on contiguity as a design criterion). A piece with no edge at all (a stretch of
+  coast hundreds of kilometres from the next client) goes to the nearest unit of a region with a land
+  border, else of the same land group.</li>
+</ul>
+
+<h3>6.5 Stragglers: nearest-neighbour vote</h3>
+<p>Boundaries from k-means run between centres and can leave a handful of clients on the wrong side of a
+town. A final pass lets every small unit (at most 30 clients) vote: it looks at the 10 nearest clients
+outside it (searching up to ~120 km), weights each by 1 / (<var>d</var> + 0.5 km), and if more than 60% of
+the weight belongs to another area with a land border, it moves there. Those neighbour links (≤ 10 km)
+also count as contiguity, so the repair of §6.4 does not move the unit back. Up to five passes. Ordinary
+boundaries sit near 50% and are left alone.</p>
+
+<h2 id="territories">7. Territories</h2>
+<p>Inside every area, and separately for every landmass in it (§8.3), the clients are split into
+territories. Each territory is one salesperson's month: its workload never exceeds <var>C</var> — a hard
+cap, not a tolerance band — and the number of territories is not asked for.</p>
+
+<h3>7.1 Towns first</h3>
+<p>Dense clusters of clients are found by linking each client to those of its 10 nearest neighbours closer
+than twice the median distance to the 5th neighbour. A cluster with at least half a salesperson's workload
+is a <em>town</em> and seeds territories. A town larger than one salesperson is split with the power
+diagram of §7.3 restricted to its own clients; any part that still exceeds the cap is bisected along its
+principal axis, at the point where the cumulative workload reaches the target. A town is therefore served
+by whole territories rather than shared with the countryside around it.</p>
+
+<h3>7.2 The countryside</h3>
+<p>Remaining clients are assigned, nearest first, to the closest town territory that still has room
+(among the 8 nearest). What is left after that is split by the power diagram of §7.3.</p>
+
+<h3>7.3 Power diagram with dual ascent</h3>
+<p>Balanced partitions of points correspond to <em>power diagrams</em> — Voronoi diagrams with an additive
+weight per cell (Aurenhammer, 1987; Brieden, Gritzmann &amp; Klemm, 2017). Each territory <var>t</var> gets
+a centre <var>c<sub>t</sub></var> and a weight <var>w<sub>t</sub></var>; each client goes to</p>
+<div class="eq"><span class="lbl">Assignment</span>
+<var>t</var>(<var>i</var>) = arg min<sub><var>t</var></sub> ‖<var>p<sub>i</sub></var> − <var>c<sub>t</sub></var>‖² + <var>w<sub>t</sub></var></div>
+<p>A territory above its target raises its weight and loses its farthest clients; one below lowers it
+(dual ascent: <var>w<sub>t</sub></var> += 0.1 · <var>s<sub>t</sub></var> · clamp(load/target − 1, ±0.5),
+with <var>s<sub>t</sub></var> the territory's mean squared radius, and |<var>w<sub>t</sub></var>| ≤
+20 <var>s<sub>t</sub></var>). Cells of a power diagram are convex, so the territories come out compact.
+The loop alternates with Lloyd re-centring (damped by half), up to 150 weight iterations per step,
+12 steps per round and 6 rounds. Between rounds, empty centres are moved into saturated territories,
+territories above the cap are split along their principal axis, and short ones that fit in their
+neighbours are dropped. The initial centres come from growth: from the densest unassigned client
+outward, taking the nearest clients until one salesperson's workload is reached (within 100 km). A local
+search then moves clients whose 10 nearest neighbours are mostly in another territory, when the cap
+allows (single moves, swaps and two-step chains).</p>
+
+<h3>7.4 Post-processing</h3>
+<ol>
+  <li><strong>Reclaim.</strong> A client moves to a closer territory with room; if none has room, a chain of
+  up to six evictions toward territories with room is tried, accepted only if it shortens the total
+  distance.</li>
+  <li><strong>Cap safety.</strong> Any territory above the cap gives its farthest clients to the nearest
+  territory with room.</li>
+  <li><strong>Merge.</strong> A territory below the cap is dissolved if all its clients fit, nearest first,
+  into neighbouring territories.</li>
+  <li><strong>Remnants.</strong> Small remnants (up to six clients) are retried client by client, with
+  chains, all or nothing. What still fits nowhere stays as a <strong>partial territory</strong>: its hours
+  count, and the badge shows the fraction of a salesperson it needs.</li>
+</ol>
+<p>The <strong>base</strong> of a territory — the point the daily trip of §4.3 starts from — is the
+visit-weighted centroid of its seed group and is not moved afterwards. Territories never cross an area
+boundary or the sea, and are not drawn with their own colour: points are coloured by area, and each
+client's territory number is in the tooltip and the CSV export.</p>
+
+<h2 id="geography">8. Geography: outlines, regions, islands</h2>
+<h3>8.1 Embedded outlines</h3>
+<p>The visual makes no network request, so it carries its own map: country borders from Natural Earth at
+1:110m and first-level regions (states, provinces, departments) for every country except Antarctica from
+Natural Earth 1:10m, simplified with Douglas–Peucker to about 2 km for the United States, Spain, India and
+Mexico and about 5 km elsewhere. Only the rings around your data are drawn. Natural Earth draws borders
+<em>de facto</em>; in disputed regions they may differ from a country's official map.</p>
+
+<h3>8.2 Region of each point</h3>
+<p>Each client is placed in the region whose ring contains it (even–odd ray casting, with a bounding-box
+and 1° grid prefilter). Simplification can leave a coastal or border client outside every ring; it then
+takes the region of its nearest client that has one.</p>
+
+<h3>8.3 Land borders and landmasses</h3>
+<p>Two regions are neighbours if their <em>unsimplified</em> 1:10m boundaries share at least two
+vertices (simplified rings no longer meet exactly). From that graph come the land groups of §6.4. A finer
+notion, the <strong>landmass</strong>, joins rings that share a boundary: Gran Canaria, Lanzarote and
+Fuerteventura are one region (Las Palmas) but three landmasses, while Michigan's Upper Peninsula is joined
+to the mainland through Wisconsin. Territories are computed per landmass (§7).</p>
+
+<h2 id="outputs">9. Outputs and interaction</h2>
+<table>
+  <tr><th>Output</th><th>What it shows</th></tr>
+  <tr><td>Map</td><td>Clients coloured by area; outliers hollow. Points and area badges shrink when you zoom out.</td></tr>
+  <tr><td>Area badges</td><td>Salespeople needed in the area (<var>N<sub>a</sub></var>), at its workload-weighted centre. Circle or rectangle.</td></tr>
+  <tr><td>Legend</td><td>One row per area with <var>N<sub>a</sub></var>, and the total. Click to focus.</td></tr>
+  <tr><td>Tooltip</td><td>Client, workload split into visit and travel (travel = hop + share of the daily trip), territory, area, postal code, your tooltip fields.</td></tr>
+  <tr><td>Export CSV (Pro)</td><td><code>customer_id, area, territory, load_hours_month</code>, plus <code>postal_code</code> when bound; <code>outlier</code> where flagged.</td></tr>
+  <tr><td>Export map PDF (Pro)</td><td>The map as shown — outlines, points, badges, legend — at twice the screen resolution, on one page.</td></tr>
+  <tr><td>Filter</td><td>Focusing an area filters other visuals with one column filter: by your Area column; else by its postal codes, when every code lies wholly in one area; else by Customer ID. Row selection is only the last resort, with none of those columns. Focusing restyles the points without rebuilding the map, and keeps your zoom.</td></tr>
+</table>
+
+<h2 id="determinism">10. Determinism and performance</h2>
+<p><strong>Determinism.</strong> Clients are sorted by Customer ID before anything is computed, and every
+random choice uses a seeded generator (mulberry32) whose seed depends only on the area and landmass. The
+same data and parameters always give the same areas and territories, whatever order Power BI delivers the
+rows in. Without a Customer ID, ties fall back to row order.</p>
+<p><strong>Performance</strong> (measured in Node.js on the sample datasets of §12):</p>
+<table>
+  <tr><th>Step</th><th class="n">Clients</th><th class="n">Time</th></tr>
+  <tr><td>Region of every point</td><td class="n">20,000–40,000</td><td class="n">≈ 30 ms</td></tr>
+  <tr><td>Automatic areas (5–7)</td><td class="n">20,000–41,000</td><td class="n">0.15–0.45 s</td></tr>
+  <tr><td>Territories, Mexico, 5 automatic areas</td><td class="n">20,000</td><td class="n">5.1 s</td></tr>
+  <tr><td>Territories, Spain with islands, 7 automatic areas (10 with islands)</td><td class="n">41,260</td><td class="n">10.5 s</td></tr>
+</table>
+<p>A few thousand clients take a second or two. The neighbour searches use spatial grids, so the cost
+grows roughly as <var>n</var> × (neighbours examined), not <var>n</var>²; the dominant term is the power
+diagram, bounded by its fixed iteration limits.</p>
+
+<h2 id="assumptions">11. Assumptions and limitations</h2>
+<ul>
+  <li><strong>Straight lines × road factor.</strong> No road network: mountains, rivers without bridges or
+  ferries are not seen, except that areas and territories never cross the sea or join regions without a
+  land border. Set the road factor for your country (§4.5).</li>
+  <li><strong>Planning, not routing.</strong> Travel is an expected value from the continuous approximation;
+  any single day's route can be longer or shorter.</li>
+  <li><strong>One base per territory</strong>, at the centre of its seed group; salespeople's home addresses
+  are not used.</li>
+  <li><strong>Visits are independent and steady</strong>: no time windows, no weekly patterns, no
+  priorities between clients.</li>
+  <li><strong>One speed per client</strong> (Pro) or one for everyone.</li>
+  <li><strong>Hard cap.</strong> Territories can be short, never long; the remainder of an area forms a
+  partial territory.</li>
+  <li><strong>Areas follow geography</strong>, not workload balance.</li>
+  <li><strong>Simplified outlines</strong> (2–5 km) decide the region of points within a few kilometres of a
+  border; it matters only for the land-border rules.</li>
+  <li><strong>Memory.</strong> Power BI limits the memory a visual may use; very large models may not
+  deliver every row.</li>
+</ul>
+
+<h2 id="validation">12. Validation</h2>
+<p>The algorithms were checked on four synthetic datasets of points of sale distributed by population
+(Spain 40,000 clients, United States 30,000, Mexico 20,000, India 30,000), plus Spain with clients on the
+Balearic and Canary Islands, and with deliberately dirty data (postal codes that span whole provinces,
+province labels taken from the nearest city). Measured on the current version:</p>
+<table>
+  <tr><th>Check</th><th>Result</th></tr>
+  <tr><td>Automatic areas crossing the sea or joining regions without a land border</td><td>0 (four countries, plus 80 runs with 1% of rows removed at random)</td></tr>
+  <tr><td>Areas split into disconnected pieces</td><td>0</td></tr>
+  <tr><td>Clients isolated in another area's town (≤ 3 own vs ≥ 4 foreign neighbours within 8 km)</td><td>0, also with shuffled row order</td></tr>
+  <tr><td>Same area with and without postal code (5 and 7 areas)</td><td>99–100% of the workload</td></tr>
+  <tr><td>Territories crossing between islands</td><td>0 (Balearics: 2 before landmasses were introduced)</td></tr>
+  <tr><td>Territories above the cap (140 h)</td><td>0; the largest is exactly 140.0 h (Mexico 351 territories, Spain with islands 652)</td></tr>
+  <tr><td>Clients without a territory</td><td>0</td></tr>
+</table>
+<div class="warn"><strong>Not yet done:</strong> a comparison of the estimated travel hours against routes
+computed on a real road network. Until it is published here, no accuracy figure is claimed for the travel
+estimate; the model and its constants are described above so that you can judge it, and the road factor
+is yours to set.</div>
+
+<h2 id="references">13. References</h2>
+<ol class="refs">
+  <li>Ansari, S., Başdere, M., Li, X., Ouyang, Y., &amp; Smilowitz, K. (2018). Advancements in continuous approximation models for logistics and transportation systems: 1996–2016. <em>Transportation Research Part B, 107</em>, 229–252. <a href="https://doi.org/10.1016/j.trb.2017.09.019">doi:10.1016/j.trb.2017.09.019</a></li>
+  <li>Arthur, D., &amp; Vassilvitskii, S. (2007). k-means++: The advantages of careful seeding. In <em>Proceedings of the 18th Annual ACM-SIAM Symposium on Discrete Algorithms (SODA '07)</em> (pp. 1027–1035). SIAM.</li>
+  <li>Aurenhammer, F. (1987). Power diagrams: Properties, algorithms and applications. <em>SIAM Journal on Computing, 16</em>(1), 78–96. <a href="https://doi.org/10.1137/0216006">doi:10.1137/0216006</a></li>
+  <li>Ballou, R. H., Rahardja, H., &amp; Sakai, N. (2002). Selected country circuity factors for road travel distance estimation. <em>Transportation Research Part A, 36</em>(9), 843–848. <a href="https://doi.org/10.1016/S0965-8564(01)00044-1">doi:10.1016/S0965-8564(01)00044-1</a></li>
+  <li>Beardwood, J., Halton, J. H., &amp; Hammersley, J. M. (1959). The shortest path through many points. <em>Proceedings of the Cambridge Philosophical Society, 55</em>(4), 299–327. <a href="https://doi.org/10.1017/S0305004100034095">doi:10.1017/S0305004100034095</a></li>
+  <li>Boscoe, F. P., Henry, K. A., &amp; Zdeb, M. S. (2012). A nationwide comparison of driving distance versus straight-line distance to hospitals. <em>The Professional Geographer, 64</em>(2), 188–196. <a href="https://doi.org/10.1080/00330124.2011.583586">doi:10.1080/00330124.2011.583586</a></li>
+  <li>Brieden, A., Gritzmann, P., &amp; Klemm, F. (2017). Constrained clustering via diagrams: A unified theory and its application to electoral district design. <em>European Journal of Operational Research, 263</em>(1), 18–34. <a href="https://doi.org/10.1016/j.ejor.2017.04.018">doi:10.1016/j.ejor.2017.04.018</a></li>
+  <li>Daganzo, C. F. (1984a). The distance traveled to visit N points with a maximum of C stops per vehicle: An analytic model and an application. <em>Transportation Science, 18</em>(4), 331–350. <a href="https://doi.org/10.1287/trsc.18.4.331">doi:10.1287/trsc.18.4.331</a></li>
+  <li>Daganzo, C. F. (1984b). The length of tours in zones of different shapes. <em>Transportation Research Part B, 18</em>(2), 135–145. <a href="https://doi.org/10.1016/0191-2615(84)90027-4">doi:10.1016/0191-2615(84)90027-4</a></li>
+  <li>Delaunay, B. (1934). Sur la sphère vide. <em>Bulletin de l'Académie des Sciences de l'URSS, Classe des sciences mathématiques et naturelles</em>, (6), 793–800.</li>
+  <li>Hess, S. W., &amp; Samuels, S. A. (1971). Experiences with a sales districting model: Criteria and implementation. <em>Management Science, 18</em>(4, Part II), P41–P54. <a href="https://doi.org/10.1287/mnsc.18.4.P41">doi:10.1287/mnsc.18.4.P41</a></li>
+  <li>Johnson, D. S., McGeoch, L. A., &amp; Rothberg, E. E. (1996). Asymptotic experimental analysis for the Held-Karp traveling salesman bound. In <em>Proceedings of the 7th Annual ACM-SIAM Symposium on Discrete Algorithms (SODA '96)</em> (pp. 341–350). SIAM.</li>
+  <li>Kalcsics, J., Nickel, S., &amp; Schröder, M. (2005). Towards a unified territorial design approach — Applications, algorithms and GIS integration. <em>TOP, 13</em>(1), 1–56. <a href="https://doi.org/10.1007/BF02578982">doi:10.1007/BF02578982</a></li>
+  <li>Kalcsics, J., &amp; Ríos-Mercado, R. Z. (2019). Districting problems. In G. Laporte, S. Nickel, &amp; F. Saldanha da Gama (Eds.), <em>Location science</em> (2nd ed., pp. 705–743). Springer. <a href="https://doi.org/10.1007/978-3-030-32177-2_25">doi:10.1007/978-3-030-32177-2_25</a></li>
+  <li>Lloyd, S. P. (1982). Least squares quantization in PCM. <em>IEEE Transactions on Information Theory, 28</em>(2), 129–137. <a href="https://doi.org/10.1109/TIT.1982.1056489">doi:10.1109/TIT.1982.1056489</a></li>
+  <li>Percus, A. G., &amp; Martin, O. C. (1996). Finite size and dimensional dependence in the Euclidean traveling salesman problem. <em>Physical Review Letters, 76</em>(8), 1188–1191. <a href="https://doi.org/10.1103/PhysRevLett.76.1188">doi:10.1103/PhysRevLett.76.1188</a></li>
+  <li>Talley, W. J. (1961). How to design sales territories. <em>Journal of Marketing, 25</em>(3), 7–13. <a href="https://doi.org/10.1177/002224296102500302">doi:10.1177/002224296102500302</a></li>
+  <li>Zoltners, A. A., &amp; Sinha, P. (1983). Sales territory alignment: A review and model. <em>Management Science, 29</em>(11), 1237–1256. <a href="https://doi.org/10.1287/mnsc.29.11.1237">doi:10.1287/mnsc.29.11.1237</a></li>
+  <li>Zoltners, A. A., &amp; Sinha, P. (2005). The 2004 ISMS Practice Prize winner—Sales territory design: Thirty years of modeling and implementation. <em>Marketing Science, 24</em>(3), 313–331. <a href="https://doi.org/10.1287/mksc.1050.0133">doi:10.1287/mksc.1050.0133</a></li>
+</ol>
+
+<h2 id="credits">14. Data and software credits</h2>
+<ul>
+  <li><strong>Natural Earth</strong> — country and admin-1 boundaries (<code>ne_110m_admin_0_countries</code>, <code>ne_10m_admin_1_states_provinces</code>). Public domain. Made with Natural Earth. Free vector and raster map data @ <a href="https://www.naturalearthdata.com">naturalearthdata.com</a>.</li>
+  <li><strong>Leaflet</strong> — map rendering. BSD-2-Clause licence, © Volodymyr Agafonkin.</li>
+  <li><strong>Delaunator</strong> — Delaunay triangulation. ISC licence, © Mapbox; author Vladimir Agafonkin.</li>
+</ul>
+
+<footer>
+  <span>© 2026 TCViz</span>
+  <a href="support.html">User guide</a>
+  <a href="privacy.html">Privacy</a>
+  <a href="terms.html">Terms</a>
+  <a href="changelog.html">Changelog</a>
+  <a href="mailto:support@tcviz.com">support@tcviz.com</a>
+</footer>
+</div>
+</body>
+</html>
